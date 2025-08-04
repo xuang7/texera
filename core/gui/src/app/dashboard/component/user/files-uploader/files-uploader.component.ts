@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, Output } from "@angular/core";
 import { FileUploadItem } from "../../../type/dashboard-file.interface";
 import { NgxFileDropEntry } from "ngx-file-drop";
 import {
@@ -27,7 +27,9 @@ import {
 } from "../../../../common/type/datasetVersionFileTree";
 import { NotificationService } from "../../../../common/service/notification/notification.service";
 import { AdminSettingsService } from "../../../service/admin/settings/admin-settings.service";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
+@UntilDestroy()
 @Component({
   selector: "texera-user-files-uploader",
   templateUrl: "./files-uploader.component.html",
@@ -52,9 +54,10 @@ export class FilesUploaderComponent {
     private notificationService: NotificationService,
     private adminSettingsService: AdminSettingsService
   ) {
-    this.adminSettingsService.getSetting("single-file-upload-maximum-size-mb").subscribe(value => {
-      this.singleFileUploadMaximumSizeMB = parseInt(value);
-    });
+    this.adminSettingsService
+      .getSetting("single-file-upload-maximum-size-mb")
+      .pipe(untilDestroyed(this))
+      .subscribe(value => (this.singleFileUploadMaximumSizeMB = parseInt(value)));
   }
 
   hideBanner() {
