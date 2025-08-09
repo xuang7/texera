@@ -317,11 +317,11 @@ export class DatasetDetailComponent implements OnInit {
 
   private loadUploadSettings(): void {
     this.adminSettingsService
-      .getSetting("multipart-upload-chunk-size-mb")
+      .getSetting("multipart_upload_chunk_size_mb")
       .pipe(untilDestroyed(this))
       .subscribe(value => (this.chunkSizeMB = parseInt(value)));
     this.adminSettingsService
-      .getSetting("max-number-of-concurrent-uploading-file-chunks")
+      .getSetting("max_number_of_concurrent_uploading_file_chunks")
       .pipe(untilDestroyed(this))
       .subscribe(value => (this.maxConcurrentChunks = parseInt(value)));
   }

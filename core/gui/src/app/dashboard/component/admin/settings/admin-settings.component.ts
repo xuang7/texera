@@ -72,15 +72,15 @@ export class AdminSettingsComponent implements OnInit {
 
   private loadDatasetSetting(): void {
     this.adminSettingsService
-      .getSetting("single-file-upload-maximum-size-mb")
+      .getSetting("single_file_upload_max_size_mb")
       .pipe(untilDestroyed(this))
       .subscribe(value => (this.maxFileSizeMB = parseInt(value)));
     this.adminSettingsService
-      .getSetting("max-number-of-concurrent-uploading-file-chunks")
+      .getSetting("max_number_of_concurrent_uploading_file_chunks")
       .pipe(untilDestroyed(this))
       .subscribe(value => (this.maxConcurrentChunks = parseInt(value)));
     this.adminSettingsService
-      .getSetting("multipart-upload-chunk-size-mb")
+      .getSetting("multipart_upload_chunk_size_mb")
       .pipe(untilDestroyed(this))
       .subscribe(value => (this.chunkSizeMB = parseInt(value)));
   }
@@ -210,12 +210,12 @@ export class AdminSettingsComponent implements OnInit {
     }
 
     const saveRequests = [
-      this.adminSettingsService.updateSetting("single-file-upload-maximum-size-mb", this.maxFileSizeMB.toString()),
+      this.adminSettingsService.updateSetting("single_file_upload_max_size_mb", this.maxFileSizeMB.toString()),
       this.adminSettingsService.updateSetting(
-        "max-number-of-concurrent-uploading-file-chunks",
+        "max_number_of_concurrent_uploading_file_chunks",
         this.maxConcurrentChunks.toString()
       ),
-      this.adminSettingsService.updateSetting("multipart-upload-chunk-size-mb", this.chunkSizeMB.toString()),
+      this.adminSettingsService.updateSetting("multipart_upload_chunk_size_mb", this.chunkSizeMB.toString()),
     ];
 
     forkJoin(saveRequests)
@@ -228,9 +228,9 @@ export class AdminSettingsComponent implements OnInit {
 
   resetDatasetSettings(): void {
     [
-      "single-file-upload-maximum-size-mb",
-      "max-number-of-concurrent-uploading-file-chunks",
-      "multipart-upload-chunk-size-mb",
+      "single_file_upload_max_size_mb",
+      "max_number_of_concurrent_uploading_file_chunks",
+      "multipart_upload_chunk_size_mb",
     ].forEach(setting => this.adminSettingsService.resetSetting(setting).pipe(untilDestroyed(this)).subscribe({}));
 
     this.message.info("Resetting dataset settings...");
