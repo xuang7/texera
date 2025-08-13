@@ -333,10 +333,9 @@ export class DatasetDetailComponent implements OnInit {
         // Cancel any existing upload for the same file to prevent progress confusion
         this.uploadSubscriptions.get(file.name)?.unsubscribe();
         this.uploadSubscriptions.delete(file.name);
-
         this.uploadTasks = this.uploadTasks.filter(t => t.filePath !== file.name);
 
-        // Add an initializing task placeholder to uploadTasks.
+        // Add an initializing task placeholder to uploadTasks
         this.uploadTasks.push({
           filePath: file.name,
           percentage: 0,
@@ -416,8 +415,11 @@ export class DatasetDetailComponent implements OnInit {
   }
 
   onClickAbortUploadProgress(task: MultipartUploadProgress & { filePath: string }) {
-    this.uploadSubscriptions.get(task.filePath)?.unsubscribe();
-    this.uploadSubscriptions.delete(task.filePath);
+    const subscription = this.uploadSubscriptions.get(task.filePath);
+    if (subscription) {
+      subscription.unsubscribe();
+      this.uploadSubscriptions.delete(task.filePath);
+    }
     this.datasetService
       .finalizeMultipartUpload(
         this.datasetName,

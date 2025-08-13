@@ -173,7 +173,7 @@ export class DatasetService {
       // Track upload progress for each part independently
       const partProgress = new Map<number, number>();
 
-      this.initiateMultipartUpload(datasetName, filePath, partCount)
+      const subscription = this.initiateMultipartUpload(datasetName, filePath, partCount)
         .pipe(
           switchMap(initiateResponse => {
             const { uploadId, presignedUrls, physicalAddress } = initiateResponse;
@@ -207,7 +207,7 @@ export class DatasetService {
 
                   xhr.upload.addEventListener("progress", event => {
                     if (event.lengthComputable) {
-                      // Update this part's progress
+                      // Update this specific part's progress
                       partProgress.set(partNumber, event.loaded);
 
                       // Calculate total progress across all parts
@@ -307,6 +307,7 @@ export class DatasetService {
         .subscribe({
           error: (err: unknown) => observer.error(err),
         });
+      return () => subscription.unsubscribe();
     });
   }
 
