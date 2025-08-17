@@ -178,55 +178,55 @@ export class DatasetService {
       // Track upload progress for each part independently
       const partProgress = new Map<number, number>();
 
-      // Track upload speed & time
+      // Progress tracking state
       const startTime = Date.now();
-      let lastUpdateTime = startTime;
-      let lastUploadedBytes = 0;
+      const speedSamples: number[] = [];
+      let lastETA = 0;
+      let lastUpdateTime = 0;
 
-      // Simple smoothing
-      let smoothedSpeed = 0;
-      let smoothedTimeRemaining = 0;
-
+      // Calculate stats with smoothing
       const calculateStats = (totalUploaded: number) => {
-        const currentTime = Date.now();
-        const timeDelta = (currentTime - lastUpdateTime) / 1000;
-        const elapsedTime = (currentTime - startTime) / 1000;
+        const now = Date.now();
+        const elapsed = (now - startTime) / 1000;
 
-        // Calculate current speed (only update every 1s to reduce jumpiness)
-        let currentSpeed = smoothedSpeed;
-        if (timeDelta > 1.0) {
-          const bytesDelta = totalUploaded - lastUploadedBytes;
-          const instantSpeed = bytesDelta / timeDelta;
-
-          // smoothing for speed
-          if (smoothedSpeed === 0) {
-            smoothedSpeed = instantSpeed;
-          } else {
-            smoothedSpeed = 0.3 * instantSpeed + 0.7 * smoothedSpeed;
-          }
-          currentSpeed = smoothedSpeed;
-
-          lastUpdateTime = currentTime;
-          lastUploadedBytes = totalUploaded;
+        // Throttle updates to every 1s
+        const shouldUpdate = now - lastUpdateTime >= 1000;
+        if (!shouldUpdate) {
+          return null;
         }
+        lastUpdateTime = now;
 
-        // Calculate time remaining with smoothing
-        const remainingBytes = file.size - totalUploaded;
-        if (currentSpeed > 0 && remainingBytes > 0) {
-          const instantTimeRemaining = Math.min(remainingBytes / currentSpeed, 24 * 3600); // max: 24h
+        // Calculate speed with moving average
+        const currentSpeed = elapsed > 0 ? totalUploaded / elapsed : 0;
+        speedSamples.push(currentSpeed);
+        if (speedSamples.length > 5) speedSamples.shift();
 
-          // Simple smoothing for time remaining
-          if (smoothedTimeRemaining === 0) {
-            smoothedTimeRemaining = instantTimeRemaining;
-          } else {
-            smoothedTimeRemaining = 0.2 * instantTimeRemaining + 0.8 * smoothedTimeRemaining;
+        const avgSpeed = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
+
+        // Calculate smooth ETA
+        const remaining = file.size - totalUploaded;
+        let eta = avgSpeed > 0 ? remaining / avgSpeed : 0;
+
+        // Smooth ETA changes (limit to 30% change)
+        if (lastETA > 0 && eta > 0) {
+          const maxChange = lastETA * 0.3;
+          const diff = Math.abs(eta - lastETA);
+          if (diff > maxChange) {
+            eta = lastETA + (eta > lastETA ? maxChange : -maxChange);
           }
+        }
+        lastETA = eta;
+
+        // Near completion optimization
+        const percentComplete = (totalUploaded / file.size) * 100;
+        if (percentComplete > 95) {
+          eta = Math.min(eta, 10);
         }
 
         return {
-          uploadSpeed: currentSpeed,
-          estimatedTimeRemaining: Math.max(0, smoothedTimeRemaining),
-          totalTime: elapsedTime,
+          uploadSpeed: avgSpeed,
+          estimatedTimeRemaining: Math.max(0, Math.round(eta)),
+          totalTime: elapsed,
         };
       };
 
@@ -282,9 +282,7 @@ export class DatasetService {
                         status: "uploading",
                         uploadId,
                         physicalAddress,
-                        uploadSpeed: stats.uploadSpeed,
-                        estimatedTimeRemaining: stats.estimatedTimeRemaining,
-                        totalTime: stats.totalTime,
+                        ...stats,
                       });
                     }
                   });
@@ -305,6 +303,7 @@ export class DatasetService {
                       let totalUploaded = 0;
                       partProgress.forEach(bytes => (totalUploaded += bytes));
                       const percentage = Math.round((totalUploaded / file.size) * 100);
+                      lastUpdateTime = 0;
                       const stats = calculateStats(totalUploaded);
 
                       observer.next({
@@ -313,9 +312,7 @@ export class DatasetService {
                         status: "uploading",
                         uploadId,
                         physicalAddress,
-                        uploadSpeed: stats.uploadSpeed,
-                        estimatedTimeRemaining: stats.estimatedTimeRemaining,
-                        totalTime: stats.totalTime,
+                        ...stats,
                       });
                       partObserver.complete();
                     } else {

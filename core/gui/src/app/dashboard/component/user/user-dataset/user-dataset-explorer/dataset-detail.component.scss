@@ -226,6 +226,7 @@ nz-select {
 
 .upload-stats {
   font-size: 13px;
+  margin-bottom: 20px;
 }
 
 ::ng-deep .ant-tag {
@@ -240,5 +241,6 @@ nz-select {
 
 .fixed-width-time {
   display: inline-block;
-  min-width: 4ch;
+  min-width: 3ch;
   text-align: right;
+}
