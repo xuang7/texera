@@ -52,6 +52,9 @@ export interface MultipartUploadProgress {
   status: "initializing" | "uploading" | "finished" | "aborted";
   uploadId: string;
   physicalAddress: string;
+  uploadSpeed?: number; // bytes per second
+  estimatedTimeRemaining?: number; // seconds
+  totalTime?: number; // total seconds taken
 }
 
 @Injectable({
@@ -173,6 +176,58 @@ export class DatasetService {
       // Track upload progress for each part independently
       const partProgress = new Map<number, number>();
 
+      // Track upload speed & time
+      const startTime = Date.now();
+      let lastUpdateTime = startTime;
+      let lastUploadedBytes = 0;
+
+      // Simple smoothing
+      let smoothedSpeed = 0;
+      let smoothedTimeRemaining = 0;
+
+      const calculateStats = (totalUploaded: number) => {
+        const currentTime = Date.now();
+        const timeDelta = (currentTime - lastUpdateTime) / 1000;
+        const elapsedTime = (currentTime - startTime) / 1000;
+
+        // Calculate current speed (only update every 500ms to reduce jumpiness)
+        let currentSpeed = smoothedSpeed;
+        if (timeDelta > 1.0) {
+          const bytesDelta = totalUploaded - lastUploadedBytes;
+          const instantSpeed = bytesDelta / timeDelta;
+
+          // smoothing for speed
+          if (smoothedSpeed === 0) {
+            smoothedSpeed = instantSpeed;
+          } else {
+            smoothedSpeed = 0.3 * instantSpeed + 0.7 * smoothedSpeed;
+          }
+          currentSpeed = smoothedSpeed;
+
+          lastUpdateTime = currentTime;
+          lastUploadedBytes = totalUploaded;
+        }
+
+        // Calculate time remaining with smoothing
+        const remainingBytes = file.size - totalUploaded;
+        if (currentSpeed > 0 && remainingBytes > 0) {
+          const instantTimeRemaining = Math.min(remainingBytes / currentSpeed, 24 * 3600); // max: 24h
+
+          // Simple smoothing for time remaining
+          if (smoothedTimeRemaining === 0) {
+            smoothedTimeRemaining = instantTimeRemaining;
+          } else {
+            smoothedTimeRemaining = 0.2 * instantTimeRemaining + 0.8 * smoothedTimeRemaining;
+          }
+        }
+
+        return {
+          uploadSpeed: currentSpeed,
+          estimatedTimeRemaining: Math.max(0, smoothedTimeRemaining),
+          totalTime: elapsedTime,
+        };
+      };
+
       const subscription = this.initiateMultipartUpload(datasetName, filePath, partCount)
         .pipe(
           switchMap(initiateResponse => {
@@ -187,6 +242,9 @@ export class DatasetService {
               status: "initializing",
               uploadId: uploadId,
               physicalAddress: physicalAddress,
+              uploadSpeed: 0,
+              estimatedTimeRemaining: 0,
+              totalTime: 0,
             });
 
             // Keep track of all uploaded parts
@@ -214,6 +272,7 @@ export class DatasetService {
                       let totalUploaded = 0;
                       partProgress.forEach(bytes => (totalUploaded += bytes));
                       const percentage = Math.round((totalUploaded / file.size) * 100);
+                      const stats = calculateStats(totalUploaded);
 
                       observer.next({
                         filePath,
@@ -221,6 +280,9 @@ export class DatasetService {
                         status: "uploading",
                         uploadId,
                         physicalAddress,
+                        uploadSpeed: stats.uploadSpeed,
+                        estimatedTimeRemaining: stats.estimatedTimeRemaining,
+                        totalTime: stats.totalTime,
                       });
                     }
                   });
@@ -241,6 +303,7 @@ export class DatasetService {
                       let totalUploaded = 0;
                       partProgress.forEach(bytes => (totalUploaded += bytes));
                       const percentage = Math.round((totalUploaded / file.size) * 100);
+                      const stats = calculateStats(totalUploaded);
 
                       observer.next({
                         filePath,
@@ -248,6 +311,9 @@ export class DatasetService {
                         status: "uploading",
                         uploadId,
                         physicalAddress,
+                        uploadSpeed: stats.uploadSpeed,
+                        estimatedTimeRemaining: stats.estimatedTimeRemaining,
+                        totalTime: stats.totalTime,
                       });
                       partObserver.complete();
                     } else {
@@ -273,23 +339,31 @@ export class DatasetService {
                 this.finalizeMultipartUpload(datasetName, filePath, uploadId, uploadedParts, physicalAddress, false)
               ),
               tap(() => {
+                const finalTotalTime = (Date.now() - startTime) / 1000;
                 observer.next({
                   filePath,
                   percentage: 100,
                   status: "finished",
                   uploadId: uploadId,
                   physicalAddress: physicalAddress,
+                  uploadSpeed: 0,
+                  estimatedTimeRemaining: 0,
+                  totalTime: finalTotalTime,
                 });
                 observer.complete();
               }),
               catchError((error: unknown) => {
                 // If an error occurred, abort the upload
+                const currentTotalTime = (Date.now() - startTime) / 1000;
                 observer.next({
                   filePath,
                   percentage: Math.round((uploadedParts.length / partCount) * 100),
                   status: "aborted",
                   uploadId: uploadId,
                   physicalAddress: physicalAddress,
+                  uploadSpeed: 0,
+                  estimatedTimeRemaining: 0,
+                  totalTime: currentTotalTime,
                 });
 
                 return this.finalizeMultipartUpload(

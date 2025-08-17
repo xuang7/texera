@@ -193,3 +193,23 @@ nz-select {
 .version-input {
   padding: 6px;
 }
+
+.upload-stats {
+  font-size: 13px;
+}
+
+::ng-deep .ant-tag {
+  border: none !important;
+}
+
+.fixed-width-speed {
+  display: inline-block;
+  min-width: 5ch;
+  text-align: right;
+}
+
+.fixed-width-time {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: right;
+}

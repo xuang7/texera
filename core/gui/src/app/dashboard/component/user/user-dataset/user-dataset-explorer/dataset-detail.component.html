@@ -263,12 +263,29 @@
                     nzTheme="outline"></i>
                 </button>
               </div>
+              <div
+                class="upload-stats"
+                *ngIf="task.status !== 'initializing'">
+                <nz-tag
+                  *ngIf="task.status === 'uploading'"
+                  [nzColor]="'blue'">
+                  <span class="fixed-width-speed">{{ formatSpeed(task.uploadSpeed) }}</span> • Elapsed:
+                  <span class="fixed-width-time">{{ formatTime(task.totalTime ?? 0) }}</span> • Remaining:
+                  <span class="fixed-width-time">{{ formatTime(task.estimatedTimeRemaining ?? 0) }}</span>
+                </nz-tag>
+
+                <nz-tag *ngIf="(task.status === 'finished' || task.status === 'aborted')">
+                  Total time: {{ formatTime(task.totalTime ?? 0) }}
+                </nz-tag>
+              </div>
               <nz-progress
                 [nzPercent]="task.percentage"
                 [nzStatus]="getUploadStatus(task.status)"></nz-progress>
             </div>
           </div>
+
           <texera-dataset-staged-objects-list
+            [uploadTimeMap]="uploadTimeMap"
             [did]="did"
             [userMakeChangesEvent]="userMakeChanges"
             (stagedObjectsChanged)="onStagedObjectsUpdated($event)"></texera-dataset-staged-objects-list>
