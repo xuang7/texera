@@ -206,6 +206,7 @@ export class DatasetService {
         // Calculate smooth ETA
         const remaining = file.size - totalUploaded;
         let eta = avgSpeed > 0 ? remaining / avgSpeed : 0;
+        eta = Math.min(eta, 24 * 60 * 60); // cap ETA at 24h, 86400 sec
 
         // Smooth ETA changes (limit to 30% change)
         if (lastETA > 0 && eta > 0) {
