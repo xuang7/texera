@@ -52,6 +52,12 @@ export class AdminSettingsComponent implements OnInit {
   maxConcurrentChunks: number = 10;
   chunkSizeMB: number = 50;
 
+  // S3 Multipart Upload Constraints
+  readonly MIN_PART_SIZE_MB = 5; // 5 MiB minimum for parts (except last part)
+  readonly MAX_PART_SIZE_MB = 5120; // 5 GiB maximum per part (5 * 1024 MiB)
+  readonly MAX_FILE_SIZE_MB = 5242880; // 5 TiB maximum object size (5 * 1024 * 1024 MiB)
+  readonly MAX_TOTAL_PARTS = 10000; // S3 maximum parts per upload
+
   constructor(
     private adminSettingsService: AdminSettingsService,
     private message: NzMessageService
@@ -204,8 +210,28 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveDatasetSettings(): void {
-    if (this.maxFileSizeMB < 1 || this.maxConcurrentChunks < 1 || this.chunkSizeMB < 1) {
-      this.message.info("Value must be at least 1.");
+    if (this.maxFileSizeMB < 1 || this.maxFileSizeMB > this.MAX_FILE_SIZE_MB) {
+      this.message.error("File size must be between 1 MB and 5,242,880 MB (5 TiB).");
+      return;
+    }
+
+    if (this.chunkSizeMB < this.MIN_PART_SIZE_MB || this.chunkSizeMB > this.MAX_PART_SIZE_MB) {
+      this.message.error("Part size must be between 5 MB and 5,120 MB (5 GiB).");
+      return;
+    }
+
+    if (this.maxConcurrentChunks < 1) {
+      this.message.error("Concurrent Parts must be at least 1.");
+      return;
+    }
+
+    const partsAtMax = Math.ceil(this.maxFileSizeMB / this.chunkSizeMB);
+    if (partsAtMax > this.MAX_TOTAL_PARTS) {
+      const requiredMin = Math.max(this.MIN_PART_SIZE_MB, Math.ceil(this.maxFileSizeMB / this.MAX_TOTAL_PARTS));
+      this.message.error(
+        `This setting would create ${partsAtMax.toLocaleString()} parts (>10,000). ` +
+          `Increase "Part Size" to at least ${requiredMin} MB or reduce "File Size".`
+      );
       return;
     }
 
