@@ -190,7 +190,7 @@ export class DatasetService {
         const timeDelta = (currentTime - lastUpdateTime) / 1000;
         const elapsedTime = (currentTime - startTime) / 1000;
 
-        // Calculate current speed (only update every 500ms to reduce jumpiness)
+        // Calculate current speed (only update every 1s to reduce jumpiness)
         let currentSpeed = smoothedSpeed;
         if (timeDelta > 1.0) {
           const bytesDelta = totalUploaded - lastUploadedBytes;
