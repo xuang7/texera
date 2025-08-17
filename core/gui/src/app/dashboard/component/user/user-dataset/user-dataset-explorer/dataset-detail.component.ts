@@ -405,7 +405,7 @@ export class DatasetDetailComponent implements OnInit {
     }
   }
 
-  // Hide a task row after 3s (stores timer to clear on destroy) and clean up its subscription
+  // Hide a task row after 5s (stores timer to clear on destroy) and clean up its subscription
   private scheduleHide(idx: number) {
     if (idx === -1) {
       return;
@@ -414,7 +414,7 @@ export class DatasetDetailComponent implements OnInit {
     this.uploadSubscriptions.delete(key);
     const handle = window.setTimeout(() => {
       this.uploadTasks = this.uploadTasks.filter(t => t.filePath !== key);
-    }, 3000);
+    }, 5000);
     this.autoHideTimers.push(handle);
   }
 
