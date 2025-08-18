@@ -210,18 +210,8 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveDatasetSettings(): void {
-    if (this.maxFileSizeMB < 1 || this.maxFileSizeMB > this.MAX_FILE_SIZE_MB) {
-      this.message.error("File size must be between 1 MB and 5,242,880 MB (5 TiB).");
-      return;
-    }
-
-    if (this.chunkSizeMB < this.MIN_PART_SIZE_MB || this.chunkSizeMB > this.MAX_PART_SIZE_MB) {
-      this.message.error("Part size must be between 5 MB and 5,120 MB (5 GiB).");
-      return;
-    }
-
-    if (this.maxConcurrentChunks < 1) {
-      this.message.error("Concurrent Parts must be at least 1.");
+    if (this.maxFileSizeMB < 1 || this.maxConcurrentChunks < 1 || this.chunkSizeMB < 1) {
+      this.message.error("Please enter valid integer values.");
       return;
     }
 

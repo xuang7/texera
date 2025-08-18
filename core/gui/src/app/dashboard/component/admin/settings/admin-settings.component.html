@@ -246,7 +246,8 @@
       [(ngModel)]="maxFileSizeMB"
       [nzMin]="1"
       [nzMax]="MAX_FILE_SIZE_MB"
-      [nzStep]="10">
+      [nzStep]="10"
+      [nzPrecision]="0">
     </nz-input-number>
   </div>
   <div class="help-text-number">
@@ -259,7 +260,8 @@
       [(ngModel)]="maxConcurrentChunks"
       [nzMin]="1"
       [nzMax]="MAX_TOTAL_PARTS"
-      [nzStep]="1">
+      [nzStep]="1"
+      [nzPrecision]="0">
     </nz-input-number>
   </div>
   <div class="help-text-number">Number of file chunks that can be uploaded simultaneously. (Range: 1 - 10000)</div>
@@ -270,7 +272,8 @@
       [(ngModel)]="chunkSizeMB"
       [nzMin]="MIN_PART_SIZE_MB"
       [nzMax]="MAX_PART_SIZE_MB"
-      [nzStep]="10">
+      [nzStep]="10"
+      [nzPrecision]="0">
     </nz-input-number>
   </div>
   <div class="help-text-number">
