@@ -230,8 +230,8 @@ nz-select {
   margin-bottom: 20px;
 }
 
-::ng-deep .ant-tag {
-  border: none !important;
+:host ::ng-deep .upload-stats .ant-tag {
+  border: none;
 }
 
 .fixed-width-speed {
