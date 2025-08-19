@@ -177,7 +177,6 @@ export class DatasetService {
         const currentSpeed = elapsed > 0 ? totalUploaded / elapsed : 0;
         speedSamples.push(currentSpeed);
         if (speedSamples.length > 5) speedSamples.shift();
-
         const avgSpeed = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
 
         // Calculate smooth ETA
