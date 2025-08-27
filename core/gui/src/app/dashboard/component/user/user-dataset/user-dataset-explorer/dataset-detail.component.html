@@ -248,6 +248,16 @@
                 class="icon-database"></i>
               Version Size: {{ formatSize(currentDatasetVersionSize) }}
             </div>
+            html<div
+            *ngIf="selectedVersion && selectedVersionCreationTime"
+            class="version-creation-date">
+            <i
+              nz-icon
+              nzType="calendar"
+              nzTheme="outline"
+              class="icon-calendar"></i>
+            Created: {{ selectedVersionCreationTime }}
+          </div>
           </div>
           <texera-user-dataset-version-filetree
             [fileTreeNodes]="fileTreeNodeList"
