@@ -296,7 +296,7 @@
               [nzHeader]="getActiveCount() > 0
                   ? ('Uploading: ' + getActiveCount() + ' file(s) in progress')
                   : 'Uploading'"
-              nzActive="true">
+              [nzActive]="false">
               <div class="upload-progress-wrapper">
                 <div
                   *ngFor="let task of uploadTasks; trackBy: trackByTask"
@@ -344,7 +344,7 @@
 
             <nz-collapse-panel
               nzHeader="Staged"
-              [nzActive]="true">
+              [nzActive]="false">
               <texera-dataset-staged-objects-list
                 [uploadTimeMap]="uploadTimeMap"
                 [did]="did"
