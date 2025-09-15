@@ -170,7 +170,8 @@ nz-select {
   margin-top: 15%;
 }
 
-.upload-progress-wrapper {
+.upload-progress-wrapper,
+.upload-progress-wrapper-pending {
   max-height: 25vh;
   overflow-y: auto;
   padding-right: 4px;
@@ -178,6 +179,12 @@ nz-select {
 
 .upload-progress-container {
   margin-left: 20px;
+}
+
+.upload-progress-wrapper-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .version-creator {

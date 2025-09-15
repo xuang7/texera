@@ -49,6 +49,7 @@ export class AdminSettingsComponent implements OnInit {
   };
 
   maxFileSizeMB: number = 20;
+  maxConcurrentFiles: number = 3;
   maxConcurrentChunks: number = 10;
   chunkSizeMB: number = 50;
 
@@ -97,6 +98,10 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   private loadDatasetSetting(): void {
+    this.adminSettingsService
+      .getSetting("max_number_of_concurrent_uploading_file")
+      .pipe(untilDestroyed(this))
+      .subscribe(value => (this.maxConcurrentFiles = parseInt(value)));
     this.adminSettingsService
       .getSetting("single_file_upload_max_size_mb")
       .pipe(untilDestroyed(this))
@@ -191,7 +196,7 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveDatasetSettings(): void {
-    if (this.maxFileSizeMB < 1 || this.maxConcurrentChunks < 1 || this.chunkSizeMB < 1) {
+    if (this.maxFileSizeMB < 1 || this.maxConcurrentFiles < 1 || this.maxConcurrentChunks < 1 || this.chunkSizeMB < 1) {
       this.message.error("Please enter valid integer values.");
       return;
     }
@@ -207,6 +212,10 @@ export class AdminSettingsComponent implements OnInit {
     }
 
     const saveRequests = [
+      this.adminSettingsService.updateSetting(
+        "max_number_of_concurrent_uploading_file",
+        this.maxConcurrentFiles.toString()
+      ),
       this.adminSettingsService.updateSetting("single_file_upload_max_size_mb", this.maxFileSizeMB.toString()),
       this.adminSettingsService.updateSetting(
         "max_number_of_concurrent_uploading_file_chunks",
@@ -225,6 +234,7 @@ export class AdminSettingsComponent implements OnInit {
 
   resetDatasetSettings(): void {
     [
+      "max_number_of_concurrent_uploading_file",
       "single_file_upload_max_size_mb",
       "max_number_of_concurrent_uploading_file_chunks",
       "multipart_upload_chunk_size_mb",
