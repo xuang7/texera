@@ -277,26 +277,27 @@
           nzHeader="Create New Version">
           <texera-user-files-uploader (uploadedFiles)="onNewUploadFilesChanged($event)"> </texera-user-files-uploader>
 
-          <nz-collapse nzGhost>
+          <nz-collapse
+            nzGhost
+            class="upload-status-panels">
             <nz-collapse-panel
               [nzHeader]="getQueuedCount() > 0
                   ? ('Pending: ' + getQueuedCount() + ' file(s) waiting in queue')
-                  : 'Pending'"
-              [nzActive]="false">
+                  : 'Pending'">
               <div class="upload-progress-wrapper-pending">
                 <div
                   *ngFor="let fileName of queuedFileNames"
                   class="upload-progress-container">
-                  <span><b>pending</b>: {{ fileName }}</span>
+                  <span>{{ fileName }}</span>
                 </div>
               </div>
             </nz-collapse-panel>
+            <nz-divider class="section-divider"></nz-divider>
 
             <nz-collapse-panel
               [nzHeader]="getActiveCount() > 0
                   ? ('Uploading: ' + getActiveCount() + ' file(s) in progress')
-                  : 'Uploading'"
-              [nzActive]="false">
+                  : 'Uploading'">
               <div class="upload-progress-wrapper">
                 <div
                   *ngFor="let task of uploadTasks; trackBy: trackByTask"
@@ -341,9 +342,10 @@
                 </div>
               </div>
             </nz-collapse-panel>
+            <nz-divider class="section-divider"></nz-divider>
 
             <nz-collapse-panel
-              nzHeader="Staged"
+              nzHeader="Changes"
               [nzActive]="false">
               <texera-dataset-staged-objects-list
                 [uploadTimeMap]="uploadTimeMap"
