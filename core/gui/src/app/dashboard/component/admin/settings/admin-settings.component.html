@@ -313,7 +313,7 @@
   </div>
   <div class="help-text-number">
     Size of each chunk during multipart upload. Range: {{ MIN_PART_SIZE_MiB }} MiB - {{ MAX_PART_SIZE_MiB | number }}
-    MiB. (5 GiB). Minimum required for current configuration: {{ requiredMinPartSizeMiB | number }} MiB.
+    MiB (5 GiB). Minimum required for current configuration: {{ requiredMinPartSizeMiB | number }} MiB.
     <br />
     In-flight data per file: ~{{ maxConcurrentChunks * chunkSizeMiB | number }} MiB
   </div>
