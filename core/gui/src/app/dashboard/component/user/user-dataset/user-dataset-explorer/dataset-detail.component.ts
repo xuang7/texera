@@ -401,7 +401,7 @@ export class DatasetDetailComponent implements OnInit {
 
   onNewUploadFilesChanged(files: FileUploadItem[]) {
     if (this.did) {
-      files.forEach((file, idx) => {
+      files.forEach(file => {
         // Check if currently uploading
         this.cancelExistingUpload(file.name);
 
@@ -424,7 +424,7 @@ export class DatasetDetailComponent implements OnInit {
               this.datasetName,
               file.name,
               file.file,
-              this.chunkSizeMB * 1024 * 1024,
+              this.chunkSizeMiB * 1024 * 1024,
               this.maxConcurrentChunks
             )
             .pipe(untilDestroyed(this))
@@ -498,14 +498,13 @@ export class DatasetDetailComponent implements OnInit {
     this.uploadSubscriptions.delete(fileName);
     this.uploadTasks = this.uploadTasks.filter(t => t.filePath !== fileName);
 
+    // Process next in queue if this was active
     if (isUploading) {
-      this.activeUploads--;
+      this.onUploadComplete();
     }
 
-    const queueIndex = this.pendingQueue.findIndex(item => item.fileName === fileName);
-    if (queueIndex !== -1) {
-      this.pendingQueue.splice(queueIndex, 1);
-    }
+    // Remove from pending queue if present
+    this.pendingQueue = this.pendingQueue.filter(item => item.fileName !== fileName);
   }
 
   private processNextQueuedUpload(): void {
@@ -526,11 +525,11 @@ export class DatasetDetailComponent implements OnInit {
     return this.pendingQueue.map(item => item.fileName);
   }
 
-  getQueuedCount(): number {
+  get queuedCount(): number {
     return this.pendingQueue.length;
   }
 
-  getActiveCount(): number {
+  get activeCount(): number {
     return this.activeUploads;
   }
 
@@ -555,8 +554,7 @@ export class DatasetDetailComponent implements OnInit {
     }
 
     if (task.status === "uploading" || task.status === "initializing") {
-      this.activeUploads--;
-      this.processNextQueuedUpload();
+      this.onUploadComplete();
     }
 
     this.datasetService

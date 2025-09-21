@@ -208,7 +208,12 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveDatasetSettings(): void {
-    if (this.maxFileSizeMiB < 1 || this.maxConcurrentFiles < 1 || this.maxConcurrentChunks < 1 || this.chunkSizeMiB < 1) {
+    if (
+      this.maxFileSizeMiB < 1 ||
+      this.maxConcurrentFiles < 1 ||
+      this.maxConcurrentChunks < 1 ||
+      this.chunkSizeMiB < 1
+    ) {
       this.message.error("Please enter valid integer values.");
       return;
     }

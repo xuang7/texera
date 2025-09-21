@@ -281,8 +281,8 @@
             nzGhost
             class="upload-status-panels">
             <nz-collapse-panel
-              [nzHeader]="getQueuedCount() > 0
-                  ? ('Pending: ' + getQueuedCount() + ' file(s) waiting in queue')
+              [nzHeader]="queuedCount > 0
+                  ? ('Pending: ' + queuedCount + ' file(s) waiting in queue')
                   : 'Pending'">
               <div class="upload-progress-wrapper-pending">
                 <div
@@ -295,8 +295,8 @@
             <nz-divider class="section-divider"></nz-divider>
 
             <nz-collapse-panel
-              [nzHeader]="getActiveCount() > 0
-                  ? ('Uploading: ' + getActiveCount() + ' file(s) in progress')
+              [nzHeader]="activeCount > 0
+                  ? ('Uploading: ' + activeCount + ' file(s) in progress')
                   : 'Uploading'">
               <div class="upload-progress-wrapper">
                 <div
