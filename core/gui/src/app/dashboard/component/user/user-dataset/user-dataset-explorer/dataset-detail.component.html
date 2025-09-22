@@ -284,7 +284,9 @@
               [nzHeader]="queuedCount > 0
                   ? ('Pending: ' + queuedCount + ' file(s) waiting in queue')
                   : 'Pending'">
-              <div class="upload-progress-wrapper-pending">
+              <div
+                *ngIf="queuedCount > 0"
+                class="upload-progress-wrapper-pending">
                 <div
                   *ngFor="let fileName of queuedFileNames"
                   class="upload-progress-container">
@@ -298,7 +300,9 @@
               [nzHeader]="activeCount > 0
                   ? ('Uploading: ' + activeCount + ' file(s) in progress')
                   : 'Uploading'">
-              <div class="upload-progress-wrapper">
+              <div
+                *ngIf="activeCount > 0"
+                class="upload-progress-wrapper">
                 <div
                   *ngFor="let task of uploadTasks; trackBy: trackByTask"
                   class="upload-progress-container">
