@@ -282,7 +282,7 @@
             class="upload-status-panels">
             <nz-collapse-panel
               [nzHeader]="queuedCount > 0
-                  ? ('Pending: ' + queuedCount + ' file(s) waiting in queue')
+                  ? ('Pending: ' + queuedCount + ' file(s)')
                   : 'Pending'">
               <div
                 *ngIf="queuedCount > 0"
@@ -298,7 +298,7 @@
 
             <nz-collapse-panel
               [nzHeader]="activeCount > 0
-                  ? ('Uploading: ' + activeCount + ' file(s) in progress')
+                  ? ('Uploading: ' + activeCount + ' file(s)')
                   : 'Uploading'">
               <div
                 *ngIf="activeCount > 0"
@@ -349,7 +349,9 @@
             <nz-divider class="section-divider"></nz-divider>
 
             <nz-collapse-panel
-              nzHeader="Changes"
+              [nzHeader]="pendingChangesCount > 0
+              ? ('Finished: ' + pendingChangesCount + ' file(s)')
+              : 'Finished'"
               [nzActive]="false">
               <texera-dataset-staged-objects-list
                 [uploadTimeMap]="uploadTimeMap"

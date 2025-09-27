@@ -242,6 +242,10 @@ nz-select {
 .upload-stats {
   font-size: 13px;
   margin-bottom: 20px;
+  nz-progress {
+    width: 97%;
+    display: inline-block;
+  }
 }
 
 :host ::ng-deep .upload-stats .ant-tag {

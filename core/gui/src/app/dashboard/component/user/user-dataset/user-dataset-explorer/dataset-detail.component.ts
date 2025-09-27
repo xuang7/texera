@@ -85,6 +85,7 @@ export class DatasetDetailComponent implements OnInit {
   public displayPreciseViewCount = false;
 
   userHasPendingChanges: boolean = false;
+  pendingChangesCount: number = 0;
 
   // Uploading setting
   chunkSizeMiB: number = 50;
@@ -106,7 +107,6 @@ export class DatasetDetailComponent implements OnInit {
       filePath: string;
     }
   > = [];
-  private autoHideTimers: number[] = [];
 
   @Output() userMakeChanges = new EventEmitter<void>();
 
@@ -335,6 +335,7 @@ export class DatasetDetailComponent implements OnInit {
 
   onStagedObjectsUpdated(stagedObjects: DatasetStagedObject[]) {
     this.userHasPendingChanges = stagedObjects.length > 0;
+    this.pendingChangesCount = stagedObjects.length;
   }
 
   onVersionSelected(version: DatasetVersion): void {
@@ -407,11 +408,10 @@ export class DatasetDetailComponent implements OnInit {
 
         // Create upload function
         const startUpload = () => {
-          this.activeUploads++;
           this.pendingQueue = this.pendingQueue.filter(item => item.fileName !== file.name);
 
           // Add an initializing task placeholder to uploadTasks
-          this.uploadTasks.push({
+          this.uploadTasks.unshift({
             filePath: file.name,
             percentage: 0,
             status: "initializing",
@@ -481,6 +481,7 @@ export class DatasetDetailComponent implements OnInit {
 
         // Queue management
         if (this.activeUploads < this.maxConcurrentFiles) {
+          this.activeUploads++;
           startUpload();
         } else {
           this.pendingQueue.push({ fileName: file.name, startUpload });
@@ -493,7 +494,6 @@ export class DatasetDetailComponent implements OnInit {
     const isUploading = this.uploadTasks.some(
       t => t.filePath === fileName && (t.status === "uploading" || t.status === "initializing")
     );
-
     this.uploadSubscriptions.get(fileName)?.unsubscribe();
     this.uploadSubscriptions.delete(fileName);
     this.uploadTasks = this.uploadTasks.filter(t => t.filePath !== fileName);
@@ -502,7 +502,6 @@ export class DatasetDetailComponent implements OnInit {
     if (isUploading) {
       this.onUploadComplete();
     }
-
     // Remove from pending queue if present
     this.pendingQueue = this.pendingQueue.filter(item => item.fileName !== fileName);
   }
@@ -511,6 +510,7 @@ export class DatasetDetailComponent implements OnInit {
     if (this.pendingQueue.length > 0 && this.activeUploads < this.maxConcurrentFiles) {
       const next = this.pendingQueue.shift();
       if (next) {
+        this.activeUploads++;
         next.startUpload();
       }
     }
@@ -533,17 +533,16 @@ export class DatasetDetailComponent implements OnInit {
     return this.activeUploads;
   }
 
-  // Hide a task row after 5s (stores timer to clear on destroy) and clean up its subscription
+  // Hide a task row after 5s
   private scheduleHide(idx: number) {
     if (idx === -1) {
       return;
     }
     const key = this.uploadTasks[idx].filePath;
     this.uploadSubscriptions.delete(key);
-    const handle = window.setTimeout(() => {
+    setTimeout(() => {
       this.uploadTasks = this.uploadTasks.filter(t => t.filePath !== key);
     }, 5000);
-    this.autoHideTimers.push(handle);
   }
 
   onClickAbortUploadProgress(task: MultipartUploadProgress & { filePath: string }) {
