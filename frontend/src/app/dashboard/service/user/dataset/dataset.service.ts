@@ -19,10 +19,10 @@
 
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { catchError, map, mergeMap, switchMap, tap, toArray } from "rxjs/operators";
+import { catchError, expand, map, mergeMap, switchMap, tap, toArray } from "rxjs/operators";
 import { Dataset, DatasetVersion } from "../../../../common/type/dataset";
 import { AppSettings } from "../../../../common/app-setting";
-import { EMPTY, from, Observable, throwError } from "rxjs";
+import { EMPTY, from, Observable, of, throwError } from "rxjs";
 import { DashboardDataset } from "../../../type/dashboard-dataset.interface";
 import { DatasetFileNode } from "../../../../common/type/datasetVersionFileTree";
 import { DatasetStagedObject } from "../../../../common/type/dataset-staged-object";
@@ -56,6 +56,12 @@ export interface MultipartUploadProgress {
   uploadSpeed?: number; // bytes per second
   estimatedTimeRemaining?: number; // seconds
   totalTime?: number; // total seconds taken
+}
+
+interface InitiateResponse {
+  uploadId: string;
+  presignedUrls: Record<number, string>;
+  physicalAddress: string;
 }
 
 @Injectable({
@@ -151,6 +157,7 @@ export class DatasetService {
     concurrencyLimit: number
   ): Observable<MultipartUploadProgress> {
     const partCount = Math.ceil(file.size / partSize);
+    const urlBatchSize = 100; // Configurable
 
     return new Observable(observer => {
       // Track upload progress for each part independently
@@ -161,6 +168,7 @@ export class DatasetService {
       const speedSamples: number[] = [];
       let lastETA = 0;
       let lastUpdateTime = 0;
+      const uploadedParts: { PartNumber: number; ETag: string }[] = []; // Keep track of all uploaded parts
 
       // Calculate stats with smoothing
       const calculateStats = (totalUploaded: number) => {
@@ -208,7 +216,8 @@ export class DatasetService {
         };
       };
 
-      const subscription = this.initiateMultipartUpload(ownerEmail, datasetName, filePath, partCount)
+      const initialNumPartsToRequest = Math.min(partCount, urlBatchSize);
+      const subscription = this.initiateMultipartUpload(ownerEmail, datasetName, filePath, initialNumPartsToRequest)
         .pipe(
           switchMap(initiateResponse => {
             const { uploadId, presignedUrls, physicalAddress } = initiateResponse;
@@ -227,15 +236,47 @@ export class DatasetService {
               totalTime: 0,
             });
 
-            // Keep track of all uploaded parts
-            const uploadedParts: { PartNumber: number; ETag: string }[] = [];
+            // Use expand to recursively fetch URL batches on-demand
+            const totalBatches = Math.ceil(partCount / urlBatchSize);
 
-            // 1) Convert presignedUrls into a stream of URLs
-            return from(presignedUrls).pipe(
+            const initialState = {
+              urls: presignedUrls,
+              nextBatch: 2, // First batch generates by lakefs
+            };
+
+            return of(initialState).pipe(
+              expand(state => {
+                if (state.nextBatch > totalBatches) {
+                  return EMPTY;
+                }
+
+                const currentBatchNum = state.nextBatch;
+                const startPart = (currentBatchNum - 1) * urlBatchSize + 1;
+                const endPart = Math.min(currentBatchNum * urlBatchSize, partCount);
+                const parts = Array.from({ length: endPart - startPart + 1 }, (_, i) => startPart + i);
+
+                return this.signPendingParts(ownerEmail, datasetName, filePath, uploadId, physicalAddress, parts).pipe(
+                  map(res => ({
+                    urls: res.presignedUrls,
+                    nextBatch: currentBatchNum + 1,
+                  }))
+                );
+              }),
+
+              // Flatten all URL batches into individual [partNumber, url] pairs
+              // 1) Convert presignedUrls into a stream of URLs
+              mergeMap(state =>
+                from(Object.entries(state.urls)).pipe(
+                  map(([partNumberStr, url]) => ({
+                    partNumber: Number(partNumberStr),
+                    url: url,
+                  }))
+                )
+              ),
+
               // 2) Use mergeMap with concurrency limit to upload chunk by chunk
-              mergeMap((url, index) => {
-                const partNumber = index + 1;
-                const start = index * partSize;
+              mergeMap(({ partNumber, url }) => {
+                const start = (partNumber - 1) * partSize;
                 const end = Math.min(start + partSize, file.size);
                 const chunk = file.slice(start, end);
 
@@ -376,14 +417,14 @@ export class DatasetService {
    * @param ownerEmail Owner's email
    * @param datasetName Dataset Name
    * @param filePath File path within the dataset
-   * @param numParts Number of parts for the multipart upload
+   * @param numParts The number of presigned URLs to fetch for this initial batch.
    */
   private initiateMultipartUpload(
     ownerEmail: string,
     datasetName: string,
     filePath: string,
     numParts: number
-  ): Observable<{ uploadId: string; presignedUrls: string[]; physicalAddress: string }> {
+  ): Observable<InitiateResponse> {
     const params = new HttpParams()
       .set("type", "init")
       .set("ownerEmail", ownerEmail)
@@ -391,9 +432,41 @@ export class DatasetService {
       .set("filePath", encodeURIComponent(filePath))
       .set("numParts", numParts.toString());
 
-    return this.http.post<{ uploadId: string; presignedUrls: string[]; physicalAddress: string }>(
+    return this.http.post<InitiateResponse>(
       `${AppSettings.getApiEndpoint()}/${DATASET_BASE_URL}/multipart-upload`,
       {},
+      { params }
+    );
+  }
+
+  /**
+   * Requests new presigned URLs for a specific batch of pending parts (Just-in-Time signing).
+   * @param ownerEmail Owner's email
+   * @param datasetName Dataset Name
+   * @param filePath File path within the dataset
+   * @param uploadId The unique ID for this multipart upload
+   * @param physicalAddress The S3 storage path
+   * @param pendingParts An array of part numbers that need to be signed.
+   * @returns An Observable emitting a new map of { partNumber: presignedUrl }.
+   */
+  private signPendingParts(
+    ownerEmail: string,
+    datasetName: string,
+    filePath: string,
+    uploadId: string,
+    physicalAddress: string,
+    pendingParts: number[]
+  ) {
+    const params = new HttpParams()
+      .set("type", "sign")
+      .set("ownerEmail", ownerEmail)
+      .set("datasetName", datasetName)
+      .set("filePath", encodeURIComponent(filePath))
+      .set("uploadId", uploadId);
+
+    return this.http.post<{ presignedUrls: Record<number, string> }>(
+      `${AppSettings.getApiEndpoint()}/dataset/multipart-upload`,
+      { pendingParts, physicalAddress },
       { params }
     );
   }

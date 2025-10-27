@@ -678,12 +678,51 @@ class DatasetResource {
             filePath,
             numPartsValue
           )
+
+          val urlsMap = presignedResponse.getPresignedUrls.asScala.toList.zipWithIndex.map {
+            case (url, idx) => (idx + 1) -> url
+          }.toMap
+
           Response
             .ok(
               Map(
                 "uploadId" -> presignedResponse.getUploadId,
-                "presignedUrls" -> presignedResponse.getPresignedUrls,
+                "presignedUrls" -> urlsMap,
                 "physicalAddress" -> presignedResponse.getPhysicalAddress
+              )
+            )
+            .build()
+
+        case "sign" =>
+          val pendingParts = payload.get("pendingParts") match {
+            case Some(rawList: List[_]) =>
+              rawList.map {
+                case i: Int    => i
+                case d: Double => d.toInt
+                case s: String => s.toInt
+              }
+            case _ => throw new BadRequestException("pendingParts required")
+          }
+
+          val physicalAddressValue = payload.get("physicalAddress") match {
+            case Some(addr: String) => addr
+            case _                  => throw new BadRequestException("physicalAddress required")
+          }
+
+          val s3UploadIdValue = uploadId.toScala.getOrElse(
+            throw new BadRequestException("uploadId query parameter is required for signing")
+          )
+
+          val urls = S3StorageClient.presignUploadParts(
+            physicalAddressValue,
+            s3UploadIdValue,
+            pendingParts
+          )
+
+          Response
+            .ok(
+              Map(
+                "presignedUrls" -> urls
               )
             )
             .build()

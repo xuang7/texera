@@ -24,7 +24,11 @@ import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCrede
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.{S3Client, S3Configuration}
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.UploadPartPresignRequest
 
+import java.net.URI
+import java.time.Duration
 import java.security.MessageDigest
 import scala.jdk.CollectionConverters._
 
@@ -47,6 +51,22 @@ object S3StorageClient {
       .endpointOverride(java.net.URI.create(StorageConfig.s3Endpoint)) // MinIO URL
       .serviceConfiguration(
         S3Configuration.builder().pathStyleAccessEnabled(true).build()
+      )
+      .build()
+  }
+
+  private lazy val s3Presigner: S3Presigner = {
+    val credentials = AwsBasicCredentials.create(StorageConfig.s3Username, StorageConfig.s3Password)
+    S3Presigner
+      .builder()
+      .credentialsProvider(StaticCredentialsProvider.create(credentials))
+      .region(Region.of(StorageConfig.s3Region))
+      .endpointOverride(URI.create(StorageConfig.s3Endpoint))
+      .serviceConfiguration(
+        S3Configuration
+          .builder()
+          .pathStyleAccessEnabled(true)
+          .build()
       )
       .build()
   }
@@ -137,6 +157,62 @@ object S3StorageClient {
 
       // Perform batch deletion
       s3Client.deleteObjects(deleteObjectsRequest)
+    }
+  }
+
+  /**
+    * Generates presigned URLs for multipart upload parts.
+    *
+    * @param physicalAddress The S3 object URI
+    * @param s3UploadId The multipart upload ID
+    * @param partNumbers List of part numbers to sign
+    * @param expiryHours URL expiration time in hours (default: 2)
+    * @return Map of part number to presigned URL
+    */
+  def presignUploadParts(
+      physicalAddress: String,
+      s3UploadId: String,
+      partNumbers: List[Int],
+      expiryHours: Int = 2
+  ): Map[Int, String] = {
+
+    val (bucket, key) = extractFromUri(physicalAddress)
+    partNumbers.map { partNumber =>
+      val presignRequest = UploadPartPresignRequest
+        .builder()
+        .signatureDuration(Duration.ofHours(expiryHours.toLong))
+        .uploadPartRequest(
+          UploadPartRequest
+            .builder()
+            .bucket(bucket)
+            .key(key)
+            .uploadId(s3UploadId)
+            .partNumber(partNumber)
+            .build()
+        )
+        .build()
+
+      partNumber -> s3Presigner.presignUploadPart(presignRequest).url().toString
+    }.toMap
+  }
+
+  private def extractFromUri(physicalAddress: String): (String, String) = {
+    val uri = new URI(physicalAddress)
+    val path = uri.getPath.stripPrefix("/")
+
+    if (uri.getScheme == "s3") {
+      // S3 URI format (e.g., "s3://my-bucket/path/to/key"); The host is the bucket name.
+      val bucket = uri.getHost
+      val key = path
+      (bucket, key)
+
+    } else {
+      // Path-Style HTTP/HTTPS format (e.g., "http://minio.host/my-bucket/path/to/key")
+      // The host is the server address, and the bucket is the first part of the path.
+      path.split("/", 2) match {
+        case Array(bucket, key) => (bucket, key)
+        case Array(bucket)      => (bucket, "")
+      }
     }
   }
 }
