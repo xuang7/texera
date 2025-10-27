@@ -17,18 +17,24 @@
  * under the License.
  */
 
-package org.apache.amber.engine.architecture.scheduling
+package org.apache.amber.operator.substringSearch
 
-case class Schedule(private val levelSets: Map[Int, Set[Region]]) extends Iterator[Set[Region]] {
-  private var currentLevel = levelSets.keys.minOption.getOrElse(0)
+import org.apache.amber.core.tuple.Tuple
+import org.apache.amber.operator.filter.FilterOpExec
+import org.apache.amber.util.JSONUtils.objectMapper
 
-  def getRegions: List[Region] = levelSets.values.flatten.toList
+class SubstringSearchOpExec(descString: String) extends FilterOpExec {
+  private val desc: SubstringSearchOpDesc =
+    objectMapper.readValue(descString, classOf[SubstringSearchOpDesc])
 
-  override def hasNext: Boolean = levelSets.isDefinedAt(currentLevel)
+  this.setFilterFunc(findSubstring)
 
-  override def next(): Set[Region] = {
-    val regions = levelSets(currentLevel)
-    currentLevel += 1
-    regions
+  private def findSubstring(tuple: Tuple): Boolean = {
+    val content = tuple.getField(desc.attribute).toString
+    if (desc.isCaseSensitive) {
+      content.contains(desc.substring)
+    } else {
+      content.toLowerCase.contains(desc.substring.toLowerCase)
+    }
   }
 }
