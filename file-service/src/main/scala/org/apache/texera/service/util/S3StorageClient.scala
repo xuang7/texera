@@ -201,7 +201,7 @@ object S3StorageClient {
     val path = uri.getPath.stripPrefix("/")
 
     if (uri.getScheme == "s3") {
-      // S3 URI format (e.g., "s3://my-bucket/path/to/key"); The host is the bucket name.
+      // S3 URI format (e.g., "s3://my-bucket/path/to/key"). The host is the bucket name.
       val bucket = uri.getHost
       val key = path
       (bucket, key)
