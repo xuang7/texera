@@ -669,9 +669,7 @@ class DatasetResource {
 
       operationType.toLowerCase match {
         case "init" =>
-          val numPartsValue = numParts.toScala.getOrElse(
-            throw new BadRequestException("numParts is required for initialization")
-          )
+          val numPartsValue = numParts.orElse(0)
 
           val presignedResponse = LakeFSStorageClient.initiatePresignedMultipartUploads(
             repositoryName,
@@ -679,21 +677,16 @@ class DatasetResource {
             numPartsValue
           )
 
-          val urlsMap = presignedResponse.getPresignedUrls.asScala.toList.zipWithIndex.map {
-            case (url, idx) => (idx + 1) -> url
-          }.toMap
-
           Response
             .ok(
               Map(
                 "uploadId" -> presignedResponse.getUploadId,
-                "presignedUrls" -> urlsMap,
                 "physicalAddress" -> presignedResponse.getPhysicalAddress
               )
             )
             .build()
 
-        case "sign" =>
+        case "presign" =>
           val pendingParts = payload.get("pendingParts") match {
             case Some(rawList: List[_]) =>
               rawList.map {
