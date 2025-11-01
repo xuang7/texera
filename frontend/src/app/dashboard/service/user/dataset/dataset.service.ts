@@ -151,7 +151,7 @@ export class DatasetService {
     concurrencyLimit: number
   ): Observable<MultipartUploadProgress> {
     const partCount = Math.ceil(file.size / partSize);
-    const urlBatchSize = 100; // Configurable: How many URLs to sign in one batch
+    const urlBatchSize = 50; // Configurable: How many URLs to sign in one batch
 
     return new Observable(observer => {
       // Track upload progress for each part independently

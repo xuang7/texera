@@ -82,6 +82,8 @@ object StorageConfig {
   val s3MultipartUploadPartSize: Long = parseSizeStringToBytes(
     conf.getString("storage.s3.multipart.part-size")
   )
+  val s3MultipartPresignExpiryMinutes: Int =
+    conf.getInt("storage.s3.multipart.presign-expiry-minutes")
 
   // File storage configurations
   val fileStorageDirectoryPath: Path =

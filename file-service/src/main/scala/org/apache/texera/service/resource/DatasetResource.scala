@@ -690,8 +690,7 @@ class DatasetResource {
           val pendingParts = payload.get("pendingParts") match {
             case Some(rawList: List[_]) =>
               rawList.map {
-                case i: Int    => i
-                case d: Double => d.toInt
+                case n: Number => n.intValue
                 case s: String => s.toInt
               }
             case _ => throw new BadRequestException("pendingParts required")

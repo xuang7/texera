@@ -166,34 +166,37 @@ object S3StorageClient {
     * @param physicalAddress The S3 object URI
     * @param s3UploadId The multipart upload ID
     * @param partNumbers List of part numbers to sign
-    * @param expiryHours URL expiration time in hours (default: 2)
     * @return Map of part number to presigned URL
     */
   def presignUploadParts(
       physicalAddress: String,
       s3UploadId: String,
-      partNumbers: List[Int],
-      expiryHours: Int = 2
+      partNumbers: List[Int]
   ): Map[Int, String] = {
-
     val (bucket, key) = extractFromUri(physicalAddress)
-    partNumbers.map { partNumber =>
-      val presignRequest = UploadPartPresignRequest
-        .builder()
-        .signatureDuration(Duration.ofHours(expiryHours.toLong))
-        .uploadPartRequest(
-          UploadPartRequest
-            .builder()
-            .bucket(bucket)
-            .key(key)
-            .uploadId(s3UploadId)
-            .partNumber(partNumber)
-            .build()
-        )
-        .build()
 
-      partNumber -> s3Presigner.presignUploadPart(presignRequest).url().toString
-    }.toMap
+    try {
+      partNumbers.map { partNumber =>
+        val presignRequest = UploadPartPresignRequest
+          .builder()
+          .signatureDuration(Duration.ofMinutes(StorageConfig.s3MultipartPresignExpiryMinutes))
+          .uploadPartRequest(
+            UploadPartRequest
+              .builder()
+              .bucket(bucket)
+              .key(key)
+              .uploadId(s3UploadId)
+              .partNumber(partNumber)
+              .build()
+          )
+          .build()
+
+        partNumber -> s3Presigner.presignUploadPart(presignRequest).url().toString
+      }.toMap
+    } catch {
+      case e: Exception =>
+        throw new RuntimeException(s"Failed to presign parts: ${e.getMessage}", e)
+    }
   }
 
   private def extractFromUri(physicalAddress: String): (String, String) = {
