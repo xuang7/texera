@@ -234,10 +234,10 @@ export class DatasetService {
             const totalBatches = Math.ceil(partCount / urlBatchSize);
             const batchNumbers$ = from(Array.from({ length: totalBatches }, (_, i) => i + 1));
 
-            // 2. Process each BATCH serially
+            // 2. Process each batch serially
             return batchNumbers$.pipe(
               concatMap(batchNum => {
-                // Calculate part numbers for the *current* batch
+                // Calculate part numbers for the current batch
                 const startPart = (batchNum - 1) * urlBatchSize + 1;
                 const endPart = Math.min(batchNum * urlBatchSize, partCount);
                 const partsToSign = Array.from({ length: endPart - startPart + 1 }, (_, i) => startPart + i);
@@ -335,14 +335,14 @@ export class DatasetService {
                           xhr.send(chunk);
                         });
                       }, concurrencyLimit),
-                      // 9. Wait for all parts *in this batch* to finish
+                      // 9. Wait for all parts in this batch to finish
                       toArray()
                     );
                   })
                 );
               }),
 
-              // 3) Collect results from all uploads (like forkJoin, but respects concurrency)
+              // 3) Collect results from all uploads
               toArray(),
               // 4) Finalize if all parts succeeded
               switchMap(() =>
