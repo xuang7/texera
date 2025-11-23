@@ -61,7 +61,7 @@ object S3StorageClient {
       .builder()
       .credentialsProvider(StaticCredentialsProvider.create(credentials))
       .region(Region.of(StorageConfig.s3Region))
-      .endpointOverride(URI.create(StorageConfig.s3Endpoint))
+      .endpointOverride(URI.create(StorageConfig.s3PresignEndpoint))
       .serviceConfiguration(
         S3Configuration
           .builder()

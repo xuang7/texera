@@ -76,6 +76,7 @@ object StorageConfig {
   // S3 specifics
   // s3Endpoint is a var because in test we need to override it to point to the test container
   var s3Endpoint: String = conf.getString("storage.s3.endpoint")
+  var s3PresignEndpoint: String = conf.getString("storage.s3.pre_signed_endpoint")
   val s3Region: String = conf.getString("storage.s3.region")
   val s3Username: String = conf.getString("storage.s3.auth.username")
   val s3Password: String = conf.getString("storage.s3.auth.password")

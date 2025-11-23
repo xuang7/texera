@@ -253,6 +253,8 @@ texeraEnvVars:
     value: ""
   - name: USER_SYS_DOMAIN
     value: ""
+  - name: STORAGE_S3_PRE_SIGNED_ENDPOINT
+    value: "http://localhost:31000"
 
 # Ingress dependency configs
 ingress-nginx:
