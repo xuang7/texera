@@ -46,6 +46,7 @@
   cdkDrag
   cdkDragBoundary="texera-workspace"
   id="right-container"
+  data-testid="property-panel"
   nz-resizable
   [nzMinWidth]="260"
   [nzMinHeight]="300"
@@ -87,6 +88,7 @@
     <h4
       id="title"
       cdkDragHandle
+      data-testid="property-panel-title"
       *ngIf="width">
       Property
     </h4>

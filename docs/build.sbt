@@ -26,14 +26,14 @@ version := "1.0.0"
 
 scalaVersion := "2.13.12"
 
-enablePlugins(JavaAppPackaging)
+//enablePlugins(JavaAppPackaging)
 
 // Enable semanticdb for Scalafix
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
 // Manage dependency conflicts by always using the latest revision
-ThisBuild / conflictManager := ConflictManager.latestRevision
+//ThisBuild / conflictManager := ConflictManager.latestRevision
 
 // Restrict parallel execution of tests to avoid conflicts
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
@@ -67,11 +67,13 @@ libraryDependencies ++= Seq(
 // Jackson-related Dependencies
 /////////////////////////////////////////////////////////////////////////////
 
-val jacksonVersion = "2.15.1"
-libraryDependencies ++= Seq(
-  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,                  // Jackson Databind
-  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,               // Jackson Annotation
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,           // Scala Module
+val jacksonVersion = "2.17.2"
+
+dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
 )
 
 // Lucene related, used by the keyword-search operators

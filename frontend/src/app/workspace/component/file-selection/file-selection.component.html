@@ -18,7 +18,7 @@
 -->
 
 <nz-spin [nzSpinning]="isAccessibleDatasetsLoading">
-  <div class="container">
+  <div class="container" data-testid="file-selection-modal">
     <div class="selection-row">
       <nz-select
         nzShowSearch
@@ -27,7 +27,8 @@
         [(ngModel)]="selectedDataset"
         (ngModelChange)="onDatasetChange()"
         [ngStyle]="{'width': isDatasetSelected ? '60%' : '100%'}"
-        class="select-dataset">
+        class="select-dataset"
+        data-testid="file-selection-dataset">
         <nz-option
           *ngFor="let dataset of datasets"
           [nzValue]="dataset"
@@ -57,7 +58,8 @@
         nzPlaceHolder="Select version"
         [(ngModel)]="selectedVersion"
         (ngModelChange)="onVersionChange()"
-        class="select-version">
+        class="select-version"
+        data-testid="file-selection-version">
         <nz-option
           *ngFor="let version of datasetVersions"
           [nzValue]="version"
@@ -71,7 +73,8 @@
       [isExpandAllAfterViewInit]="true"
       [fileTreeNodes]="suggestedFileTreeNodes"
       (selectedTreeNode)="onFileTreeNodeSelected($event)"
-      class="texera-user-dataset-version-filetree">
+      class="texera-user-dataset-version-filetree"
+      data-testid="file-selection-filetree">
     </texera-user-dataset-version-filetree>
   </div>
 </nz-spin>
