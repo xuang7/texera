@@ -8,7 +8,6 @@ case class UiConfig(
                      recordWidth: Int,
                      recordHeight: Int,
                      slowMo: Int,
-                     propertyPanelDragLeft: Double,
                      propertyPanelResizeHeight: Double,
                      operatorPosX: Double,
                      operatorPosY: Double
@@ -28,33 +27,26 @@ object TestDataConfig {
       version = "v1",
       files = Seq("IMDb_All_Genres_etf_clean1.csv")
     ),
-    //Fake one
-    "mini" -> Dataset(
-      name = "mini",
+    // Placeholder
+    "test2" -> Dataset(
+      name = "test2",
       version = "v1",
       files = Seq("mini_data.csv")
-    ),
-    "lakers" -> Dataset(
-      name = "lakers",
-      version = "v1",
-      files = Seq("lakers_stats.csv")
     )
   )
 
   // Workflow
   val workflows = Map(
     "WorkflowA" -> Workflow("8", "Workflow A - Data Input Demo"),
-    "WorkflowB" -> Workflow("9", "Workflow B - Machine Learning Demo"),
-    "WorkflowC" -> Workflow("9", "Workflow B - Visualization Demo")
+    "WorkflowB" -> Workflow("13", "Workflow B - Machine Learning Demo"),
   )
 
   // Css
   val uiConfig = UiConfig(
-    recordWidth = 1280,
-    recordHeight = 720,
+    recordWidth = 1366,
+    recordHeight = 768,
     //1280, 720
     slowMo = 400,
-    propertyPanelDragLeft = 400.0,
     propertyPanelResizeHeight = 300.0,
     operatorPosX = 0.33,
     operatorPosY = 0.4

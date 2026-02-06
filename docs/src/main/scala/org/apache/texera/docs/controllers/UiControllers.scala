@@ -6,6 +6,10 @@ import com.microsoft.playwright.options.{LoadState, WaitForSelectorState}
 import org.apache.texera.docs.config.TestDataConfig
 
 object Utils {
+  def waitVisible(loc: Locator): Locator = {
+    loc.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    loc
+  }
 
   def installFakeCursor(page: Page): Unit = {
     page.addStyleTag(new Page.AddStyleTagOptions().setContent(
@@ -67,7 +71,7 @@ object Utils {
   }
 
   def clickWithCursor(page: Page, loc: Locator, steps: Int = 20): Unit = {
-    loc.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    waitVisible(loc)
     val box = loc.boundingBox()
     if (box == null) throw new RuntimeException("No bounding box")
 
@@ -78,7 +82,7 @@ object Utils {
   }
 
   def hoverWithCursor(page: Page, loc: Locator, steps: Int = 20): Unit = {
-    loc.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    waitVisible(loc)
     val box = loc.boundingBox()
     if (box == null) throw new RuntimeException("No bounding box")
 
@@ -89,23 +93,29 @@ object Utils {
 
   def chooseFirstDropdownOption(page: Page): Unit = {
     val dropdown = page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
-    dropdown.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
-
+    waitVisible(dropdown)
     val option = dropdown.locator(".ant-select-item-option:not(.ant-select-item-option-disabled)").first()
-    option.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    waitVisible(option)
     clickWithCursor(page, option)
   }
 
   def chooseDropdownOptionByText(page: Page, text: String): Unit = {
     val dropdown = page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
-    dropdown.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    waitVisible(dropdown)
 
-    val option = dropdown.getByText(text, new Locator.GetByTextOptions().setExact(true)).first()
-    if (option.count() == 0) {
+    val exactOption = dropdown.getByText(text, new Locator.GetByTextOptions().setExact(true)).first()
+    if (exactOption.count() > 0) {
+      waitVisible(exactOption)
+      clickWithCursor(page, exactOption)
+      return
+    }
+
+    val fuzzyOption = dropdown.getByText(text, new Locator.GetByTextOptions().setExact(false)).first()
+    if (fuzzyOption.count() == 0) {
       throw new RuntimeException(s"Dropdown option not found: $text")
     }
-    option.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
-    clickWithCursor(page, option)
+    waitVisible(fuzzyOption)
+    clickWithCursor(page, fuzzyOption)
   }
 }
 
@@ -121,7 +131,7 @@ class LoginController(username: String, password: String) extends UiController {
     val usernameField = page.getByTestId("login-username")
       .or(page.getByPlaceholder("Username"))
       .first()
-    usernameField.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(usernameField)
     Utils.hoverWithCursor(page, usernameField)
     usernameField.fill(username)
 
@@ -137,7 +147,7 @@ class LoginController(username: String, password: String) extends UiController {
     Utils.clickWithCursor(page, signInBtn)
     page.waitForLoadState(LoadState.NETWORKIDLE)
 
-    println(s"[Login] ✓ Success")
+    println(s"[Login] Success")
   }
 }
 
@@ -151,9 +161,9 @@ class NavigationController(workflowId: String, workflowName: String) extends UiC
     Utils.installFakeCursor(page)
 
     val canvas = page.getByTestId("workflow-canvas")
-    canvas.first().waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(canvas.first())
 
-    println(s"[Navigation] ✓ Workflow loaded")
+    println(s"[Navigation] Workflow loaded")
   }
 }
 
@@ -168,75 +178,72 @@ class OperatorInsertViaSearch(
     Utils.installFakeCursor(page)
 
     // 1) Open Operators menu
-    val operatorsMenu = page.getByText("Operators", new Page.GetByTextOptions().setExact(true)).first()
-    operatorsMenu.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    val operatorsMenu = page.getByTestId("left-panel-operators-button")
+      .or(page.getByText("Operators", new Page.GetByTextOptions().setExact(true)))
+      .first()
+
+    Utils.waitVisible(operatorsMenu)
     Utils.clickWithCursor(page, operatorsMenu)
 
     // 2) Focus search box and press Enter to add operator
-    val searchInput = page.getByTestId("operator-search-input").first()
-    searchInput.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    val searchInput = page.getByTestId("operator-search-input")
+      .or(page.getByPlaceholder("search operator"))
+      .first()
+
+    Utils.waitVisible(searchInput)
     Utils.clickWithCursor(page, searchInput)
     searchInput.fill(operatorName)
 
-    // Optional: wait until a new joint-cell appears (more deterministic)
-    val beforeCells = page.locator("g.joint-cell").count()
-
     searchInput.press("Enter")
 
-    // 3) Ensure node created + SELECT it (critical)
-    // best effort: wait for new cell (won't throw if same count)
-    val afterCells = page.locator("g.joint-cell").count()
-    if (afterCells <= beforeCells) {
-      page.locator("g.joint-cell").last()
-        .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
-    }
+    // 3) Ensure node created + SELECT it
+    val newNode = Utils.waitVisible(page.locator("g.joint-cell").last())
 
-    val newNode = page.locator("g.joint-cell").last()
     if (newNode.count() > 0) {
       Utils.clickWithCursor(page, newNode)
     }
 
-    // 4) Wait for property panel to be present (optional but helps stability)
-    page.getByTestId("property-panel-title").first()
-      .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    // 4) Wait for property panel to be present
+    Utils.waitVisible(page.getByTestId("property-panel-title").first())
 
-    println(s"[Operator Add] ✓ $operatorName added & selected")
+    println(s"[Operator Add] $operatorName added & selected")
   }
 }
 
 
 // ============ Controller 4: Property Panel ============
 class PropertyPanelController(
-                               dragLeft: Option[Double] = Some(TestDataConfig.uiConfig.propertyPanelDragLeft),
                                resizeHeight: Option[Double] = Some(TestDataConfig.uiConfig.propertyPanelResizeHeight)
                              ) extends UiController {
   override def execute(page: Page): Unit = {
     println("[Property Panel] Adjusting panel...")
-    page.getByTestId("property-panel").first()
-      .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(page.getByTestId("property-panel").first())
 
-    // Resize height
+    // Resize height (drag to near bottom of viewport)
     resizeHeight.foreach { height =>
       val container = page.getByTestId("property-panel").first()
+
       if (container.count() > 0) {
-        val handle = container.locator(".nz-resizable-handle-bottom, .nz-resizable-handle").first()
-        if (handle.count() > 0) {
-          val box = handle.boundingBox()
-          if (box != null) {
-            val x = box.x + box.width / 2.0
-            val y = box.y + box.height / 2.0
-            page.mouse().move(x, y, new Mouse.MoveOptions().setSteps(15))
-            page.waitForTimeout(300)
-            page.mouse().down()
-            page.mouse().move(x, y + height, new Mouse.MoveOptions().setSteps(30))
-            page.mouse().up()
-            page.waitForTimeout(800)
-          }
+        val containerBox = container.boundingBox()
+
+        if (containerBox != null) {
+          // Drag from the bottom edge of the panel to avoid picking the wrong resize handle.
+          val x = containerBox.x + containerBox.width / 2.0
+          val y = containerBox.y + containerBox.height - 2.0
+          val viewport = page.viewportSize()
+          val targetY = if (viewport != null) math.max(y + height, viewport.height - 20) else y + height
+
+          page.mouse().move(x, y, new Mouse.MoveOptions().setSteps(15))
+          page.waitForTimeout(300)
+          page.mouse().down()
+          page.mouse().move(x, targetY, new Mouse.MoveOptions().setSteps(30))
+          page.mouse().up()
+          page.waitForTimeout(800)
         }
       }
     }
 
-    println("[Property Panel] ✓ Adjusted")
+    println("[Property Panel] Adjusted")
   }
 }
 
@@ -249,13 +256,12 @@ class FileSelectionController(
   override def execute(page: Page): Unit = {
     println(s"[File Selection] Selecting from $datasetName/$versionName...")
 
-    // Click Select File button
     val selectBtn = page.getByTestId("file-selection-open").first()
-    selectBtn.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(selectBtn)
     Utils.clickWithCursor(page, selectBtn)
 
     val modal = page.getByTestId("file-selection-modal")
-    modal.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(modal)
 
     // Select dataset
     val datasetSelect = modal.getByTestId("file-selection-dataset").first()
@@ -277,15 +283,17 @@ class FileSelectionController(
 
     // Click file
     val fileTree = modal.getByTestId("file-selection-filetree").first()
-    fileTree.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+    Utils.waitVisible(fileTree)
     val fileNode = modal.locator("span[title*='.csv'], .ant-tree-node-content-wrapper").first()
     if (fileNode.count() > 0) {
-      fileNode.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
+      Utils.waitVisible(fileNode)
       Utils.clickWithCursor(page, fileNode)
     }
 
-    println("[File Selection] ✓ File selected")
+    println("[File Selection] File selected")
   }
+
+  // Todo: replace CSS-based selectors (AntD dropdown rendering)
 }
 
 // ============ Controller 6: Field Config (for future use) ============
@@ -295,7 +303,43 @@ class FieldConfigController(
                            ) extends UiController {
   override def execute(page: Page): Unit = {
     println(s"[Field Config] Setting $fieldName = $value...")
-    // TODO: Implement field configuration logic
-    page.waitForTimeout(500)
+    if (tryFillFieldContainer(page, page.getByTestId(s"form-field-$fieldName"), value)) return
+
+    val label = page.getByText(fieldName, new Page.GetByTextOptions().setExact(true)).first()
+
+    Utils.waitVisible(label)
+    val fieldContainer = label.locator("xpath=ancestor::formly-field[1]")
+
+    if (tryFillFieldContainer(page, fieldContainer, value)) return
+
+    throw new RuntimeException(s"No supported input found for field: $fieldName")
+  }
+
+  private def tryFillFieldContainer(page: Page, container: Locator, value: String): Boolean = {
+    if (container.count() == 0) return false
+
+    val textInput = container.locator(
+      "xpath=.//textarea | .//input[not(@type='checkbox') and not(@type='radio')]"
+    ).first()
+
+    if (textInput.count() > 0) {
+      Utils.clickWithCursor(page, textInput)
+      textInput.fill(value)
+      return true
+    }
+
+    val select = container.locator("xpath=.//nz-select").first()
+
+    if (select.count() > 0) {
+      Utils.clickWithCursor(page, select)
+      if (value.trim.nonEmpty) {
+        Utils.chooseDropdownOptionByText(page, value)
+      } else {
+        Utils.chooseFirstDropdownOption(page)
+      }
+      return true
+    }
+
+    false
   }
 }

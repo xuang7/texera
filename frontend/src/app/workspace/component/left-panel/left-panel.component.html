@@ -41,6 +41,7 @@
       nzTooltipPlacement="right"
       nz-tooltip="{{items[i].title}}"
       nzSelected="{{currentComponent === items[i].component}}"
+      [attr.data-testid]="items[i].title === 'Operators' ? 'left-panel-operators-button' : null"
       *ngIf="items[i].enabled && !width"
       (click)="openFrame(i)">
       <span
@@ -81,17 +82,18 @@
         nzType="minus"></span>
     </li>
     <ng-container *ngFor="let i of order">
-      <li
-        nz-menu-item
-        cdkDrag
-        nzTooltipPlacement="right"
-        nz-tooltip="{{items[i].title}}"
-        nzSelected="{{currentComponent === items[i].component}}"
-        *ngIf="items[i].enabled"
-        (click)="openFrame(i)">
-        <span
-          nz-icon
-          nzType="{{items[i].icon}}"></span>
+    <li
+      nz-menu-item
+      cdkDrag
+      nzTooltipPlacement="right"
+      nz-tooltip="{{items[i].title}}"
+      nzSelected="{{currentComponent === items[i].component}}"
+      [attr.data-testid]="items[i].title === 'Operators' ? 'left-panel-operators-button' : null"
+      *ngIf="items[i].enabled"
+      (click)="openFrame(i)">
+      <span
+        nz-icon
+        nzType="{{items[i].icon}}"></span>
       </li>
     </ng-container>
   </ul>

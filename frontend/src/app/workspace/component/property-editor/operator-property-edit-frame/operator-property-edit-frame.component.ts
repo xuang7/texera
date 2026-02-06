@@ -393,9 +393,14 @@ export class OperatorPropertyEditFrameComponent implements OnInit, OnChanges, On
             typeof mappedField.key === "string" &&
             this.fieldStyleOverride.has(mappedField.key)
           ) {
-            return { style: this.fieldStyleOverride.get(mappedField.key) };
+            return {
+              style: this.fieldStyleOverride.get(mappedField.key),
+              "data-testid": `form-field-${mappedField.key}`,
+            };
           } else {
-            return {};
+            return isDefined(mappedField) && typeof mappedField.key === "string"
+              ? { "data-testid": `form-field-${mappedField.key}` }
+              : {};
           }
         },
       };

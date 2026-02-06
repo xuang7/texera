@@ -27,7 +27,7 @@ class VideoRunner {
     println(s"╚════════════════════════════════════════════════════╝\n")
 
     scenarios.foreach { scenario =>
-      println(s"\n→ Generating: ${scenario.operatorName}")
+      println(s"\n Generating: ${scenario.operatorName}")
       generateSingleVideo(scenario, videoDir)
     }
 
@@ -73,12 +73,11 @@ class VideoRunner {
 
       // Final wait
       page.waitForTimeout(2000)
-
-      println(s"  ✓ Completed: ${scenario.operatorName}")
+      println(s"  Completed: ${scenario.operatorName}")
 
     } catch {
       case e: Exception =>
-        println(s"  ✗ ERROR: ${e.getMessage}")
+        println(s"  ERROR: ${e.getMessage}")
         e.printStackTrace()
     } finally {
       var videoPath: java.nio.file.Path = null

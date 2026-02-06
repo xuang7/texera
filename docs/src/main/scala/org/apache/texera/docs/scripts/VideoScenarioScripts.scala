@@ -7,26 +7,10 @@ import org.apache.texera.docs.orchestrator.OperatorScenario
 
 object VideoScenarioScripts {
 
-  // Hardcoded
-  private val specByOperatorType: Map[String, (String /*workflowKey*/, Seq[UiController])] = Map(
-    "CSVFileScan" -> (
-      "WorkflowA",
-      Seq(
-        new FileSelectionController(
-          TestDataConfig.datasets("test1").name,
-          TestDataConfig.datasets("test1").version
-        )
-      )
-    ),
-    "ArrowSource" -> (
-      "WorkflowA",
-      Seq(
-        new FileSelectionController(
-          // placeholder
-          TestDataConfig.datasets("mini").name,
-          TestDataConfig.datasets("mini").version
-        )
-      )
+  private val defaultFileControllers: Seq[UiController] = Seq(
+    new FileSelectionController(
+      TestDataConfig.datasets("test1").name,
+      TestDataConfig.datasets("test1").version
     )
   )
 
@@ -45,8 +29,13 @@ object VideoScenarioScripts {
       val uiName = m.additionalMetadata.userFriendlyName
       val groupName = m.additionalMetadata.operatorGroupName
 
-      val (workflowKey, extraControllers) =
-        specByOperatorType.getOrElse(opType, ("WorkflowA", Seq.empty))
+      val workflowKey = "WorkflowA"
+      val extraControllers =
+        if (opType == "TextInput") {
+          Seq(new FieldConfigController("Text", "1,2,3,4,5,6"))
+        } else {
+          defaultFileControllers
+        }
 
       OperatorScenario(
         operatorName = uiName,
