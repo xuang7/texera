@@ -1,4 +1,3 @@
-// config/TestDataConfig.scala
 package org.apache.texera.docs.config
 
 case class UserAccount(username: String, password: String)
@@ -27,18 +26,13 @@ object TestDataConfig {
       version = "v1",
       files = Seq("IMDb_All_Genres_etf_clean1.csv")
     ),
-    // Placeholder
-    "test2" -> Dataset(
-      name = "test2",
-      version = "v1",
-      files = Seq("mini_data.csv")
-    )
   )
 
   // Workflow
   val workflows = Map(
     "WorkflowA" -> Workflow("8", "Workflow A - Data Input Demo"),
     "WorkflowB" -> Workflow("13", "Workflow B - Machine Learning Demo"),
+    "Workflow10" -> Workflow("10", "Workflow 10 - Visualization Demo"),
   )
 
   // Css

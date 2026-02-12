@@ -11,8 +11,20 @@ object VideoGeneratorMain {
     println("╚════════════════════════════════════════════════════╝")
 
     val orchestrator = new VideoRunner()
-    orchestrator.generateVideos(VideoScenarioScripts.allScenarios)
+    val scenarios = VideoScenarioScripts.allScenarios
+    val limit = parseLimit(args).getOrElse(scenarios.length)
+    orchestrator.generateVideos(scenarios.take(limit))
 
     println("Complete.\n")
+  }
+
+  private def parseLimit(args: Array[String]): Option[Int] = {
+    args.toList.flatMap { arg =>
+      if (arg.startsWith("--limit=")) {
+        arg.stripPrefix("--limit=").toIntOption
+      } else {
+        arg.toIntOption
+      }
+    }.headOption
   }
 }
