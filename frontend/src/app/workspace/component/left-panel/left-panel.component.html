@@ -41,7 +41,7 @@
       nzTooltipPlacement="right"
       nz-tooltip="{{items[i].title}}"
       nzSelected="{{currentComponent === items[i].component}}"
-      [attr.data-testid]="items[i].title === 'Operators' ? 'left-panel-operators-button' : null"
+      [attr.data-testid]="items[i].title === 'Operators' ? 'operator-left-panel-operators-button' : null"
       *ngIf="items[i].enabled && !width"
       (click)="openFrame(i)">
       <span
@@ -88,7 +88,7 @@
       nzTooltipPlacement="right"
       nz-tooltip="{{items[i].title}}"
       nzSelected="{{currentComponent === items[i].component}}"
-      [attr.data-testid]="items[i].title === 'Operators' ? 'left-panel-operators-button' : null"
+      [attr.data-testid]="items[i].title === 'Operators' ? 'operator-left-panel-operators-button' : null"
       *ngIf="items[i].enabled"
       (click)="openFrame(i)">
       <span

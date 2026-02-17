@@ -8,10 +8,10 @@ import org.apache.texera.docs.scripts.operators.OperatorScriptRegistry
 object VideoScenarioScripts {
 
   def dataInputScenarios: Seq[OperatorScenario] =
-    OperatorScriptRegistry.byGroup(OperatorGroupConstants.INPUT_GROUP).map(toScenario _)
+    OperatorScriptRegistry.byGroup(OperatorGroupConstants.INPUT_GROUP).map(toScenario)
 
   def visualizationBasicScenarios: Seq[OperatorScenario] =
-    OperatorScriptRegistry.byGroup(OperatorGroupConstants.VISUALIZATION_BASIC_GROUP).map(toScenario _)
+    OperatorScriptRegistry.byGroup(OperatorGroupConstants.VISUALIZATION_BASIC_GROUP).map(toScenario)
 
   val allScenarios: Seq[OperatorScenario] = visualizationBasicScenarios
 
@@ -20,7 +20,11 @@ object VideoScenarioScripts {
       operatorName = script.operatorName,
       category = script.category,
       workflowKey = script.workflowKey,
-      steps = Seq(ControllerStep(s"Script: ${script.operatorName}")(script.run)),
+      steps = Seq(
+        ControllerStep(s"Prepare: ${script.operatorName}")(script.prepare),
+        ControllerStep(s"Execute: ${script.operatorName}")(script.execute),
+        ControllerStep(s"Finish: ${script.operatorName}")(script.finish)
+      ),
       outputFileName = script.outputFileName
     )
 }

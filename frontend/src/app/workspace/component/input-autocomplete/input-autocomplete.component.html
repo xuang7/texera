@@ -29,7 +29,7 @@
     *ngIf="isFileSelectionEnabled"
     nz-button
     class="file-select-button"
-    data-testid="file-selection-open"
+    data-testid="dataset-file-selection-open"
     nzSize="small"
     (click)="isFileSelectionEnabled && onClickOpenFileSelectionModal()">
     {{ selectedFilePath ? 'Reselect File' : 'Select File' }}

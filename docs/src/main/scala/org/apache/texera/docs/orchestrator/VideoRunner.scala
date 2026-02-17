@@ -29,15 +29,13 @@ class VideoRunner {
         .setSlowMo(TestDataConfig.uiConfig.slowMo)
     )
 
-    val storageState: Option[String] = None
-
     println(s"\n╔════════════════════════════════════════════════════╗")
     println(s"║  Generating ${scenarios.length} operator videos")
     println(s"╚════════════════════════════════════════════════════╝\n")
 
     scenarios.foreach { scenario =>
       println(s"\n Generating: ${scenario.operatorName}")
-      generateSingleVideo(browser, storageState, scenario, videoDir)
+      generateSingleVideo(browser, scenario, videoDir)
     }
 
     println(s"\n╔════════════════════════════════════════════════════╗")
@@ -50,7 +48,6 @@ class VideoRunner {
 
   private def generateSingleVideo(
                                    browser: Browser,
-                                   storageState: Option[String],
                                    scenario: OperatorScenario,
                                    videoDir: java.nio.file.Path
                                  ): Unit = {
@@ -64,7 +61,6 @@ class VideoRunner {
         TestDataConfig.uiConfig.recordWidth,
         TestDataConfig.uiConfig.recordHeight
       )
-    storageState.foreach(options.setStorageState)
 
     val context = browser.newContext(options)
 
@@ -105,44 +101,6 @@ class VideoRunner {
       }
     }
   }
-
-//  private def loginOnce(browser: Browser): Option[String] = {
-//    val context = browser.newContext(
-//      new Browser.NewContextOptions()
-//        .setViewportSize(
-//          TestDataConfig.uiConfig.recordWidth,
-//          TestDataConfig.uiConfig.recordHeight
-//        )
-//    )
-//    val page = context.newPage()
-//    try {
-//      val user = TestDataConfig.users.head
-//      page.navigate(TestDataConfig.baseUrl)
-//      page.waitForLoadState(LoadState.NETWORKIDLE)
-//      page.waitForTimeout(300)
-//
-//      val username = page.getByTestId("login-username")
-//      val password = page.getByTestId("login-password")
-//      val submit = page.getByTestId("login-submit")
-//
-//      if (username.count() > 0 && password.count() > 0 && submit.count() > 0) {
-//        username.first().fill(user.username, new Locator.FillOptions().setTimeout(5000))
-//        password.first().fill(user.password, new Locator.FillOptions().setTimeout(5000))
-//        submit.first().click(new Locator.ClickOptions().setTimeout(5000))
-//        page.waitForLoadState(LoadState.NETWORKIDLE)
-//        page.waitForTimeout(500)
-//      }
-//
-//      if (page.isClosed) None else Some(context.storageState())
-//    } catch {
-//      case e: Exception =>
-//        println(s"Warning: loginOnce failed, falling back to per-scenario login. ${e.getMessage}")
-//        None
-//    } finally {
-//      try context.close()
-//      catch { case _: Exception => }
-//    }
-//  }
 
   private def renameVideoFile(videoPath: java.nio.file.Path, newName: String): Unit = {
     try {

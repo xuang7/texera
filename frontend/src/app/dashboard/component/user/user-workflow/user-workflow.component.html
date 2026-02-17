@@ -24,6 +24,7 @@
       <button
         nz-button
         class="create-btn"
+        data-testid="navigation-create-workflow-button"
         (click)="onClickCreateNewWorkflowFromDashboard()"
         [disabled]="accessLevel === 'READ'"
         title="Create a new workflow">

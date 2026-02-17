@@ -2,6 +2,7 @@
 package org.apache.texera.docs.controllers
 
 import com.microsoft.playwright.Page
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Shared context wrapping Playwright Page, passed through all builders.
@@ -24,10 +25,10 @@ trait ControllerStep {
 }
 
 object ControllerStep {
-  def apply(stepName: String)(run: ControllerContext => Unit): ControllerStep =
+  def apply(stepName: String)(action: ControllerContext => Unit): ControllerStep =
     new ControllerStep {
       override def name: String = stepName
-      override def run(ctx: ControllerContext): Unit = run(ctx)
+      override def run(ctx: ControllerContext): Unit = action(ctx)
     }
 }
 
@@ -52,16 +53,24 @@ class Controller(val steps: Seq[ControllerStep]) {
  */
 trait ControllerBuilder[B <: ControllerBuilder[B]] {
   protected val context: ControllerContext
-  protected var steps: Seq[ControllerStep] = Seq.empty
+  protected val steps: ArrayBuffer[ControllerStep] = ArrayBuffer.empty
+  private var builtController: Option[Controller] = None
 
   protected def self: B
 
   protected def addStep(step: ControllerStep): B = {
-    steps = steps :+ step
+    require(builtController.isEmpty, "Cannot add steps after build() has been called")
+    steps += step
     self
   }
 
-  def build(): Controller = new Controller(steps)
+  def build(): Controller = {
+    builtController.getOrElse {
+      val controller = new Controller(steps.toVector)
+      builtController = Some(controller)
+      controller
+    }
+  }
 
   /** Convenience: build + execute in one call. */
   def execute(): Unit = build().execute(context)
