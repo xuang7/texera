@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS "user"
     comment                 TEXT,
     account_creation_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
     affiliation             VARCHAR(128),
+    joining_reason          VARCHAR(500),
     -- check that either password or google_id is not null
     CONSTRAINT ck_nulltest CHECK ((password IS NOT NULL) OR (google_id IS NOT NULL))
     );
@@ -289,6 +290,7 @@ CREATE TABLE IF NOT EXISTS dataset_upload_session
     num_parts_requested INT          NOT NULL,
     file_size_bytes     BIGINT       NOT NULL,
     part_size_bytes     BIGINT       NOT NULL,
+    created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
     PRIMARY KEY (uid, did, file_path),
 
