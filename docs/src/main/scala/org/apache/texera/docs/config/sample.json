@@ -1,0 +1,41 @@
+{
+  "operators": [
+    {
+      "operatorID": "CSVFileScan-operator-16116b22-d507-4571-aaa0-4b1dd7eaebe3",
+      "operatorType": "CSVFileScan",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "fileEncoding": "UTF_8",
+        "customDelimiter": ",",
+        "hasHeader": true,
+        "fileName": "/texera/featured-dataset1/v5/IMDb_All_Genres_etf_clean1.csv"
+      },
+      "inputPorts": [],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "CSV File Scan",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    }
+  ],
+  "operatorPositions": {
+    "CSVFileScan-operator-16116b22-d507-4571-aaa0-4b1dd7eaebe3": {
+      "x": 260,
+      "y": 180
+    }
+  },
+  "links": [],
+  "commentBoxes": [],
+  "settings": {
+    "dataTransferBatchSize": 400,
+    "executionMode": "PIPELINED"
+  }
+}

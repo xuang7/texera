@@ -12,7 +12,7 @@ object VideoGeneratorMain {
 
     val orchestrator = new VideoRunner()
     val scenarios = VideoScenarioScripts.allScenarios
-    val limit = parseLimit(args).getOrElse(scenarios.length)
+    val limit = parseLimit(args).getOrElse(scenarios.length) // test use
     orchestrator.generateVideos(scenarios.take(limit))
 
     println("Complete.\n")

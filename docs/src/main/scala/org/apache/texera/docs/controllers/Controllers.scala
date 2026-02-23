@@ -11,7 +11,47 @@ import org.apache.texera.docs.config.TestDataConfig
 
 private[controllers] object FormHelpers {
 
+  private def firstVisible(locator: Locator): Option[Locator] = {
+    val count = locator.count()
+    var i = 0
+    while (i < count) {
+      val nth = locator.nth(i)
+      try {
+        if (nth.isVisible()) return Some(nth)
+      } catch {
+        case _: Exception =>
+      }
+      i += 1
+    }
+    None
+  }
+
+  private def fieldScope(field: Locator): Locator = {
+    val formly = field.locator("xpath=ancestor-or-self::formly-field[1]").first()
+    if (formly.count() > 0) return formly
+
+    val formItem = field.locator("xpath=ancestor-or-self::*[contains(@class,'ant-form-item')][1]").first()
+    if (formItem.count() > 0) return formItem
+
+    field
+  }
+
+  def focusField(page: Page, field: Locator): Unit = {
+    val scope = fieldScope(field)
+    try scope.scrollIntoViewIfNeeded() catch { case _: Exception => }
+    val clickable = firstVisible(
+      scope.locator(".ant-select-selector, input:not([type='checkbox']):not([type='radio']), textarea, [role='combobox']")
+    ).getOrElse(scope)
+    try Utils.clickWithCursor(page, clickable) catch { case _: Exception => }
+  }
+
+  def isBooleanLikeField(field: Locator): Boolean = {
+    val scope = fieldScope(field)
+    scope.locator("input[type='checkbox'], .ant-switch, button[role='switch']").count() > 0
+  }
+
   def isFieldRequired(field: Locator): Boolean = {
+    // Find the required field in property panel
     field.locator("label.ant-form-item-required").count() > 0 ||
       field.locator(".ant-form-item-required").count() > 0 ||
       field.locator("[aria-required='true']").count() > 0 ||
@@ -30,7 +70,7 @@ private[controllers] object FormHelpers {
       return true
     }
 
-    val select = container.locator("xpath=.//nz-select").first()
+    val select = container.locator("xpath=.//nz-select").first() // Select first option
     if (select.count() > 0) {
       Utils.clickWithCursor(page, select)
       if (value.trim.nonEmpty) Utils.chooseDropdownOptionByText(page, value)
@@ -41,19 +81,27 @@ private[controllers] object FormHelpers {
   }
 
   def tryFillSelect(page: Page, field: Locator, value: Option[String] = None): Boolean = {
-    val select = field.locator("nz-select").first()
-    if (select.count() == 0) return false
+    val scope = fieldScope(field)
+    val selector = firstVisible(
+      scope.locator(".ant-select-selector, [role='combobox'], nz-select, .ant-select")
+    ).orElse {
+      firstVisible(field.locator(".ant-select-selector, [role='combobox'], nz-select, .ant-select"))
+    }.orNull
+    if (selector == null || selector.count() == 0) return false
 
     if (value.isEmpty) {
-      val placeholder = field.locator(".ant-select-selection-placeholder")
-      val selected = field.locator(".ant-select-selection-item")
+      val placeholder = scope.locator(".ant-select-selection-placeholder")
+      val selected = scope.locator(".ant-select-selection-item")
       if (placeholder.count() == 0 && selected.count() > 0) return true
     }
 
-    val selector = select.locator(".ant-select-selector").first()
-    if (selector.count() == 0) return false
-
+    focusField(page, field)
     Utils.clickWithCursor(page, selector)
+    var retries = 0
+    while (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() == 0 && retries < 8) {
+      page.waitForTimeout(100)
+      retries += 1
+    }
     value.filter(_.trim.nonEmpty) match {
       case Some(v) => Utils.chooseDropdownOptionByText(page, v)
       case _       => Utils.chooseFirstDropdownOption(page)
@@ -61,23 +109,35 @@ private[controllers] object FormHelpers {
     true
   }
 
+  // Enter given value
   def tryFillText(page: Page, field: Locator, value: String): Boolean = {
-    val input = field.locator("textarea, input:not([type='checkbox']):not([type='radio'])").first()
-    if (input.count() == 0) return false
+    val scope = fieldScope(field)
+    val input = firstVisible(
+      scope.locator("textarea, input:not([type='checkbox']):not([type='radio']):not([readonly])")
+    ).orElse {
+      firstVisible(field.locator("textarea, input:not([type='checkbox']):not([type='radio']):not([readonly])"))
+    }.orNull
+    if (input == null || input.count() == 0) return false
 
     val current = try input.inputValue() catch { case _: Exception => "" }
     if (current != null && current.nonEmpty) return true
 
+    focusField(page, field)
     Utils.clickWithCursor(page, input)
     input.fill(value)
     true
   }
 
+  // check box -> select
   def tryCheckCheckbox(page: Page, field: Locator): Boolean = {
-    val checkbox = field.locator("input[type='checkbox']").first()
+    val scope = fieldScope(field)
+    val checkbox = firstVisible(scope.locator("input[type='checkbox']")).orElse {
+      firstVisible(field.locator("input[type='checkbox']"))
+    }.orNull
+    if (checkbox == null) return false
     if (checkbox.count() == 0) return false
-    val isChecked = try checkbox.isChecked() catch { case _: Exception => false }
-    if (!isChecked) Utils.clickWithCursor(page, checkbox)
+    //    val isChecked = try checkbox.isChecked() catch { case _: Exception => false }
+    // if (!isChecked) Utils.clickWithCursor(page, checkbox)
     true
   }
 }
@@ -88,12 +148,11 @@ private[controllers] object FormHelpers {
 //    new LoginControllerBuilder(ctx).login("u","p").logout().execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class LoginControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[LoginControllerBuilder] {
+class LoginControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
-  override protected def self: LoginControllerBuilder = this
-
-  def login(username: String, password: String): LoginControllerBuilder = addStep(new ControllerStep {
+  def login(username: String, password: String): this.type = addStep(new ControllerStep {
+    // Add login step return this builder
     override def name = "Login"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -108,6 +167,8 @@ class LoginControllerBuilder(protected val context: ControllerContext)
 
       val loginSubmit = page.getByTestId("login-submit")
       println(s"[Login] login-submit count = ${loginSubmit.count()}, url = ${page.url()}")
+
+      // login element is not seen, page is loading
       if (loginSubmit.count() == 0) {
         try {
           loginSubmit.first().waitFor(
@@ -123,13 +184,19 @@ class LoginControllerBuilder(protected val context: ControllerContext)
 
       val usernameField = page.getByTestId("login-username")
         .or(page.getByPlaceholder("Username")).first()
+
       usernameField.waitFor(
+        // Wait for text box visible
         new Locator.WaitForOptions()
           .setState(WaitForSelectorState.VISIBLE)
           .setTimeout(5000)
       )
+
       Utils.clickWithCursor(page, usernameField)
       usernameField.fill(username)
+
+      // Verify input (username, password) is filled
+      // if not, reenter
       val usernameVal = try usernameField.inputValue() catch { case _: Exception => "" }
       if (usernameVal != username) {
         usernameField.click(new Locator.ClickOptions().setForce(true))
@@ -175,7 +242,7 @@ class LoginControllerBuilder(protected val context: ControllerContext)
     }
   })
 
-  def logout(): LoginControllerBuilder = addStep(new ControllerStep {
+  def logout(): this.type = addStep(new ControllerStep {
     override def name = "Logout"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -205,14 +272,15 @@ class LoginControllerBuilder(protected val context: ControllerContext)
 //    new NavigationControllerBuilder(ctx).createNewWorkflow().cleanWorkflow().execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class NavigationControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[NavigationControllerBuilder] {
+class NavigationControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
-  override protected def self: NavigationControllerBuilder = this
-  def openWorkflow(workflowId: String, workflowName: String = ""): NavigationControllerBuilder = addStep(new ControllerStep {
+  def openWorkflow(workflowId: String, workflowName: String = ""): this.type = addStep(new ControllerStep {
     override def name = s"Navigate to ${if (workflowName.nonEmpty) workflowName else workflowId}"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
+
+      // Redirect to given page
       page.navigate(
         s"${TestDataConfig.baseUrl}/dashboard/user/workflow/$workflowId",
         new Page.NavigateOptions()
@@ -229,13 +297,13 @@ class NavigationControllerBuilder(protected val context: ControllerContext)
     }
   })
 
-  def createNewWorkflow(): NavigationControllerBuilder = addStep(new ControllerStep {
+  def createNewWorkflow(): this.type = addStep(new ControllerStep {
     override def name = "Create New Workflow"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       ctx.ensureFakeCursor()
 
-      if (page.url().contains("/workflow/") && page.getByTestId("navigation-workflow-canvas").count() > 0) return
+      if (page.url().contains("/workflow") && page.getByTestId("navigation-workflow-canvas").count() > 0) return
 
       page.navigate(
         s"${TestDataConfig.baseUrl}/dashboard",
@@ -262,7 +330,53 @@ class NavigationControllerBuilder(protected val context: ControllerContext)
     }
   })
 
-  def cleanWorkflow(): NavigationControllerBuilder = addStep(new ControllerStep {
+  def importWorkflow(jsonFilePath: String): this.type = addStep(new ControllerStep {
+    override def name = s"Import Workflow from ${jsonFilePath.split("/").last}"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      ctx.ensureFakeCursor()
+
+      val filePath = java.nio.file.Paths.get(jsonFilePath)
+      if (!java.nio.file.Files.exists(filePath)) {
+        throw new RuntimeException(s"Workflow JSON not found: $jsonFilePath")
+      }
+
+      val beforeCount = page.locator("g.joint-cell.joint-element").count()
+
+      val importBtn = page.getByTitle("import workflow")
+        .or(page.getByTitle("import"))
+        .or(page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("import")))
+        .first()
+      Utils.waitVisible(importBtn)
+
+      val chooser = page.waitForFileChooser(new Page.WaitForFileChooserOptions().setTimeout(5000), () => {
+        Utils.clickWithCursor(page, importBtn)
+      })
+      chooser.setFiles(filePath) // hide the file selection window
+
+      var retries = 0
+      while (page.locator("g.joint-cell.joint-element").count() <= beforeCount && retries < 40) {
+        page.waitForTimeout(250)
+        retries += 1
+      } // Check import finish, # operator increase
+
+      // Centralize all operator automatically
+      val centerBtn = page.getByTitle("minimap-center-button")
+      if (centerBtn.count() > 0) {
+        Utils.clickWithCursor(page, centerBtn)
+      }
+
+      val afterCount = page.locator("g.joint-cell.joint-element").count()
+      if (afterCount <= beforeCount) {
+        println(s"[Import] No new operators after import (before=$beforeCount, after=$afterCount)")
+      } else {
+        println(s"[Import] Loaded ${afterCount - beforeCount} operators from ${jsonFilePath.split("/").last}")
+      }
+      page.waitForTimeout(300)
+    }
+  })
+
+  def cleanWorkflow(): this.type = addStep(new ControllerStep {
     override def name = "Clean Workflow"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -281,29 +395,32 @@ class NavigationControllerBuilder(protected val context: ControllerContext)
 //    new OperatorControllerBuilder(ctx)
 //      .insertViaSearch("CSV File Scan")
 //      .insertViaSearch("Regex")
-//      .connectLastTwo()
 //      .execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class OperatorControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[OperatorControllerBuilder] {
+class OperatorControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
-  override protected def self: OperatorControllerBuilder = this
+  // load all operator metadata & category for later use
   private lazy val operatorMetadata = OperatorMetadataGenerator.allOperatorMetadata.operators
-  private lazy val groupPathByName: Map[String, Seq[String]] =
+  private lazy val groupPathByName: Map[String, Seq[String]] = {
     buildGroupPathMap(OperatorGroupConstants.OperatorGroupOrderList)
+  }
 
+  // If present → return the draggable child element; if not → return the element itself.
+  // For some UI components, the drag handle isn’t the outer container, but a specific element inside.
   private def dragHandle(item: Locator): Locator = {
     val draggable = item.locator("[draggable='true']").first()
     if (draggable.count() > 0) draggable else item
   }
 
-  def insertViaSearch(operatorName: String): OperatorControllerBuilder = addStep(new ControllerStep {
+  def insertViaSearch(operatorName: String): this.type = addStep(new ControllerStep {
     override def name = s"Insert '$operatorName' via Search"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       ctx.ensureFakeCursor()
 
+      // Find operator selection panel
       val operatorsMenu = page.getByTestId("operator-left-panel-operators-button")
         .or(page.getByText("Operators", new Page.GetByTextOptions().setExact(true))).first()
       Utils.waitVisible(operatorsMenu)
@@ -316,7 +433,7 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
       searchInput.fill(operatorName)
 
       val beforeCount = page.locator("g.joint-cell.joint-element").count()
-      searchInput.press("Enter")
+      searchInput.press("Enter") // enter -> insert first match operator
 
       val targetCount = beforeCount + 1
       var retries = 0
@@ -331,6 +448,7 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
         if (body.count() > 0) Utils.clickWithCursor(page, body) else Utils.clickWithCursor(page, newNode)
       }
 
+      // Avoid overlapping operators
       if (beforeCount > 0) {
         val prevNode = page.locator("g.joint-cell.joint-element").nth(beforeCount - 1)
         repositionNodeNear(page, prevNode, newNode, spacing = 220)
@@ -344,6 +462,7 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
       } catch { case _: Exception => }
     }
 
+    // Check 2 node location, avoid overlapping
     private def repositionNodeNear(page: Page, prev: Locator, cur: Locator, spacing: Double): Unit = {
       if (prev.count() == 0 || cur.count() == 0) return
       val prevBox = Utils.cellBox(prev)
@@ -367,26 +486,21 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
   def insertViaDrag(
                      operatorName: String,
                      operatorType: Option[String] = None,
-                     canvasPosition: (Double, Double) = (0.3, 0.35)
-                   ): OperatorControllerBuilder = addStep(new ControllerStep {
-    override def name = s"Insert '$operatorName' via Drag"
+                     canvasPosition: (Double, Double) = (0.06, 0.2),
+                     dragNextTo: Option[String] = None
+                   ): this.type = addStep(new ControllerStep {
+    override def name = s"Insert '$operatorName' via Drag${dragNextTo.map(n => s" (next to $n)").getOrElse("")}"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       ctx.ensureFakeCursor()
 
+      // ── Open operator panel & resolve source ──
       val operatorsMenu = page.getByTestId("operator-left-panel-operators-button")
         .or(page.getByText("Operators", new Page.GetByTextOptions().setExact(true))).first()
       Utils.waitVisible(operatorsMenu)
       Utils.clickWithCursor(page, operatorsMenu)
 
-      val searchInput = page.getByTestId("operator-search-input")
-        .or(page.getByPlaceholder("search operator")).first()
-      Utils.waitVisible(searchInput)
-      Utils.clickWithCursor(page, searchInput)
-      // Prefer hierarchy navigation first (group -> subgroup -> operator) for stable selection.
-      searchInput.fill("")
-      page.waitForTimeout(150)
-
+      // Locate operator from group
       val metadata = metadataFor(operatorName, operatorType)
       val groupPath = metadata.flatMap(m => groupPathByName.get(m.additionalMetadata.operatorGroupName)).getOrElse(Seq.empty)
       val hierarchyOperator = resolveByGroupPath(page, operatorName, operatorType)
@@ -404,42 +518,71 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
         None
       }.getOrElse {
         println(s"[Operator] Hierarchy fallback to search for '$operatorName'")
-        searchInput.fill(operatorName)
-        page.waitForTimeout(200)
+        val searchInput = page.getByTestId("operator-search-input")
+          .or(page.getByPlaceholder("search operator")).first()
+        Utils.waitVisible(searchInput)
+        Utils.clickWithCursor(page, searchInput)
+        searchInput.fill("")
+        page.waitForTimeout(150)
         dragHandle(resolveOperatorSource(page, operatorName, operatorType))
       }
       operator.scrollIntoViewIfNeeded()
       page.waitForTimeout(150)
 
+      // ── Prepare canvas ──
       val canvas = page.getByTestId("navigation-workflow-canvas")
         .or(page.locator("svg[joint-selector='svg'], svg#v-2")).first()
       Utils.waitVisible(canvas)
       canvas.scrollIntoViewIfNeeded()
       page.waitForTimeout(100)
 
+      // Target location based on last element
       val beforeCount = page.locator("g.joint-cell.joint-element").count()
+      val beforeLinkCount = page.locator("g.joint-cell.joint-link").count()
       val canvasBox = canvas.boundingBox()
       if (canvasBox == null) throw new RuntimeException("Drag failed: missing canvas bounding box")
 
-      val index = Math.max(0, beforeCount)
-      val baseX = canvasBox.x + canvasBox.width * canvasPosition._1
-      val baseY = canvasBox.y + canvasBox.height * canvasPosition._2
-      val tgtX = math.min(canvasBox.x + canvasBox.width - 40, baseX + (index % 4) * 180)
-      val tgtY = math.min(canvasBox.y + canvasBox.height - 40, baseY + (index / 4) * 120)
+      // ── Calculate drop position ──
+      // If dragNextTo is specified, position to the right of that operator.
+      // Otherwise, use default grid layout.
+      val anchorNode: Option[Locator] = dragNextTo.flatMap(findNodeByType(page, _))
 
+      if (dragNextTo.isDefined && anchorNode.isEmpty) {
+        println(s"[Operator] Warning: dragNextTo='${dragNextTo.get}' not found on canvas, using default position")
+      }
+
+      val (tgtX, tgtY) = anchorNode.flatMap { anchor =>
+        val box = Utils.cellBox(anchor)
+        if (box != null) {
+          val spacing = 120.0
+          Some((
+            math.min(canvasBox.x + canvasBox.width - 30, box.x + box.width + spacing),
+            box.y + box.height / 2.0
+          ))
+        } else None
+      }.getOrElse {
+        val index = Math.max(0, beforeCount)
+        val baseX = canvasBox.x + canvasBox.width * canvasPosition._1
+        val baseY = canvasBox.y + canvasBox.height * canvasPosition._2
+        (
+          math.min(canvasBox.x + canvasBox.width - 40, baseX + (index % 4) * 180),
+          math.min(canvasBox.y + canvasBox.height - 40, baseY + (index / 4) * 120)
+        )
+      }
+
+      // ── Perform drag with fallbacks ──
       performDrag(page, operator, tgtX, tgtY)
 
       val targetCount = beforeCount + 1
       if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
-        // Retry with search-filtered result to avoid hidden/non-draggable nodes from hierarchy view.
-        searchInput.fill(operatorName)
-        page.waitForTimeout(200)
+        val searchInput = page.getByTestId("operator-search-input")
+          .or(page.getByPlaceholder("search operator")).first()
+        Utils.waitVisible(searchInput)
+        Utils.clickWithCursor(page, searchInput)
+        searchInput.fill("")
+        page.waitForTimeout(150)
         val retryOperator = dragHandle(resolveOperatorSource(page, operatorName, operatorType))
         performDrag(page, retryOperator, tgtX, tgtY)
-      }
-      if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
-        // Final fallback: insert via Enter.
-        tryInsertViaEnter(page, searchInput, operatorName, operatorType)
       }
       if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
         throw new RuntimeException(
@@ -448,29 +591,94 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
         )
       }
 
+      val centerBtn = page.getByTitle("minimap-center-button")
+      if (centerBtn.count() > 0) {
+        Utils.clickWithCursor(page, centerBtn)
+        page.waitForTimeout(300)
+      }
+
+      // ── Click the new node to select it ──
       val newNode = Utils.waitVisible(page.locator("g.joint-cell.joint-element").nth(beforeCount))
       if (newNode.count() > 0) {
         val body = newNode.locator("rect.body").first()
         if (body.count() > 0) Utils.clickWithCursor(page, body) else Utils.clickWithCursor(page, newNode)
       }
 
-      if (beforeCount > 0) {
-        val prevNode = page.locator("g.joint-cell.joint-element").nth(beforeCount - 1)
-        val prevBox = Utils.cellBox(prevNode)
-        val newBox = Utils.cellBox(newNode)
-        if (prevBox != null && newBox != null) {
-          val spacing = 220.0
-          val targetCenterX = prevBox.x + prevBox.width + spacing + newBox.width / 2.0
-          val targetCenterY = prevBox.y + prevBox.height / 2.0
-          val currentCenterX = newBox.x + newBox.width / 2.0
-          val currentCenterY = newBox.y + newBox.height / 2.0
-          Utils.nudgeCell(page, newNode, targetCenterX - currentCenterX, targetCenterY - currentCenterY)
-          page.waitForTimeout(250)
+      // Best-effort explicit connect: anchor -> new node.
+      // This keeps behavior stable even when auto-connect does not trigger.
+      if (dragNextTo.isDefined && anchorNode.exists(_.count() > 0) && newNode.count() > 0) {
+        val connected = tryAutoConnect(page, anchorNode.get, newNode)
+        if (connected) {
+          var retries = 0
+          while (page.locator("g.joint-cell.joint-link").count() <= beforeLinkCount && retries < 10) {
+            page.waitForTimeout(120)
+            retries += 1
+          }
+          if (page.locator("g.joint-cell.joint-link").count() <= beforeLinkCount) {
+            println(s"[Operator] Warning: explicit connect attempted but no new link was detected for '$operatorName'")
+          }
+        } else {
+          println(s"[Operator] Warning: could not locate connectable ports for '$operatorName'")
         }
-        Utils.ensureSeparated(page, prevNode, newNode)
+      }
+
+      // ── Reposition only for default placement mode.
+      // In dragNextTo mode we keep a single drag operation without secondary nudge.
+      if (dragNextTo.isEmpty) {
+        val referenceNode = anchorNode
+          .filter(_.count() > 0)
+          .orElse(if (beforeCount > 0) Some(page.locator("g.joint-cell.joint-element").nth(beforeCount - 1)) else None)
+          .orNull
+
+        if (referenceNode != null && referenceNode.count() > 0) {
+          val refBox = Utils.cellBox(referenceNode)
+          val newBox = Utils.cellBox(newNode)
+          if (refBox != null && newBox != null) {
+            val spacing = 220.0
+            val targetCenterX = refBox.x + refBox.width + spacing + newBox.width / 2.0
+            val targetCenterY = refBox.y + refBox.height / 2.0
+            val currentCenterX = newBox.x + newBox.width / 2.0
+            val currentCenterY = newBox.y + newBox.height / 2.0
+            Utils.nudgeCell(page, newNode, targetCenterX - currentCenterX, targetCenterY - currentCenterY)
+            page.waitForTimeout(250)
+          }
+          Utils.ensureSeparated(page, referenceNode, newNode)
+        }
       }
     }
   })
+
+  /** Find an existing operator node on the canvas by operator type or display name. */
+  private def findNodeByType(page: Page, operatorTypeOrName: String): Option[Locator] = {
+    val normalized = operatorTypeOrName.toLowerCase.replaceAll("[^a-z0-9]", "")
+    val cells = page.locator("g.joint-cell.joint-element")
+    val count = cells.count()
+    var i = 0
+    while (i < count) {
+      val cell = cells.nth(i)
+      // 1. Check data-testid attribute
+      val testId = try Option(cell.getAttribute("data-testid")).getOrElse("")
+      catch { case _: Exception => "" }
+      if (testId.toLowerCase.contains(normalized)) return Some(cell)
+
+      // 1.5. Check model-id (workflow json operator id usually lands here)
+      val modelId = try Option(cell.getAttribute("model-id")).getOrElse("")
+      catch { case _: Exception => "" }
+      if (modelId.toLowerCase.contains(normalized)) return Some(cell)
+
+      // 2. Check the visible label text inside the node
+      val label = cell.locator("text.operator-name, .texera-operator-label, text").first()
+      val labelText = try {
+        if (label.count() > 0) Option(label.innerText()).getOrElse("") else ""
+      } catch { case _: Exception => "" }
+      val normalizedLabel = labelText.toLowerCase.replaceAll("[^a-z0-9]", "")
+      if (normalizedLabel.nonEmpty && (normalizedLabel.contains(normalized) || normalized.contains(normalizedLabel))) {
+        return Some(cell)
+      }
+      i += 1
+    }
+    None
+  }
 
   private def waitForNodeCountAtLeast(page: Page, targetCount: Int, maxRetries: Int): Boolean = {
     var retries = 0
@@ -487,10 +695,41 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
     if (srcBox == null) throw new RuntimeException("Drag failed: missing source bounding box")
     val srcX = srcBox.x + srcBox.width / 2.0
     val srcY = srcBox.y + srcBox.height / 2.0
+    // Center
     page.mouse().move(srcX, srcY, new Mouse.MoveOptions().setSteps(25))
     page.mouse().down()
     page.mouse().move(targetX, targetY, new Mouse.MoveOptions().setSteps(35))
     page.mouse().up()
+  }
+
+  private def tryAutoConnect(page: Page, fromNode: Locator, toNode: Locator): Boolean = {
+    def visibleCenter(locator: Locator): Option[(Double, Double)] = {
+      val candidate = firstVisible(locator).orElse(if (locator.count() > 0) Some(locator.first()) else None).orNull
+      if (candidate == null || candidate.count() == 0) return None
+      val box = candidate.boundingBox()
+      if (box == null) None else Some((box.x + box.width / 2.0, box.y + box.height / 2.0))
+    }
+
+    val fromPort = visibleCenter(
+      fromNode.locator("circle[port-group='output'], circle[port*='output'], .outPorts circle, circle[magnet='true']")
+    )
+    val toPort = visibleCenter(
+      toNode.locator("circle[port-group='input'], circle[port*='input'], .inPorts circle, circle[magnet='true']")
+    )
+
+    val fallbackFrom = visibleCenter(fromNode.locator("rect.body, rect").first()).map { case (x, y) => (x + 18.0, y) }
+    val fallbackTo = visibleCenter(toNode.locator("rect.body, rect").first()).map { case (x, y) => (x - 18.0, y) }
+
+    val src = fromPort.orElse(fallbackFrom)
+    val dst = toPort.orElse(fallbackTo)
+    if (src.isEmpty || dst.isEmpty) return false
+
+    page.mouse().move(src.get._1, src.get._2, new Mouse.MoveOptions().setSteps(12))
+    page.mouse().down()
+    page.mouse().move(dst.get._1, dst.get._2, new Mouse.MoveOptions().setSteps(20))
+    page.mouse().up()
+    page.waitForTimeout(180)
+    true
   }
 
   private def firstVisible(locator: Locator): Option[Locator] = {
@@ -512,15 +751,15 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
   private def metadataFor(operatorName: String, operatorType: Option[String]) = {
     val normalizedName = normalize(operatorName)
     operatorType.filter(_.nonEmpty)
-      .flatMap(t => operatorMetadata.find(_.operatorType == t))
+      .flatMap(t => operatorMetadata.find(_.operatorType == t)) // Find the same name
       .orElse(operatorMetadata.find(m => normalize(m.additionalMetadata.userFriendlyName) == normalizedName))
   }
 
   private def resolveOperatorSource(
-      page: Page,
-      operatorName: String,
-      operatorType: Option[String]
-  ): Locator = {
+                                     page: Page,
+                                     operatorName: String,
+                                     operatorType: Option[String]
+                                   ): Locator = {
     val byType = operatorType.filter(_.nonEmpty).map(t => page.getByTestId(s"operator-item-$t").first())
     byType.foreach { loc =>
       if (loc.count() > 0) return dragHandle(loc)
@@ -548,11 +787,11 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
   }
 
   private def tryInsertViaEnter(
-      page: Page,
-      searchInput: Locator,
-      operatorName: String,
-      operatorType: Option[String]
-  ): Unit = {
+                                 page: Page,
+                                 searchInput: Locator,
+                                 operatorName: String,
+                                 operatorType: Option[String]
+                               ): Unit = {
     // First try pressing Enter in search box to insert the top matched operator.
     try {
       Utils.clickWithCursor(page, searchInput)
@@ -573,10 +812,10 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
   }
 
   private def resolveByGroupPath(
-      page: Page,
-      operatorName: String,
-      operatorType: Option[String]
-  ): Option[Locator] = {
+                                  page: Page,
+                                  operatorName: String,
+                                  operatorType: Option[String]
+                                ): Option[Locator] = {
     val metadata = metadataFor(operatorName, operatorType)
     val path = metadata.flatMap(m => groupPathByName.get(m.additionalMetadata.operatorGroupName)).getOrElse(Seq.empty)
     if (path.isEmpty) return None
@@ -649,67 +888,6 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
     }
     walk(groups, Seq.empty)
   }
-
-  def connectLastTwo(): OperatorControllerBuilder = addStep(new ControllerStep {
-    override def name = "Connect Last Two Operators"
-    override def run(ctx: ControllerContext): Unit = {
-      val page = ctx.page
-      ctx.ensureFakeCursor()
-
-      val cells = page.locator("g.joint-cell.joint-element")
-      val count = cells.count()
-      if (count < 2) return
-
-      val source = cells.nth(count - 2)
-      val target = cells.nth(count - 1)
-
-      val beforeLinks = page.locator("g.joint-link").count()
-
-      def boxOf(loc: Locator): com.microsoft.playwright.options.BoundingBox = {
-        if (loc == null || loc.count() == 0) null else loc.boundingBox()
-      }
-
-      val srcPort = Option(Utils.findPort(source, "out")).filter(_.count() > 0)
-        .orElse(Option(Utils.findPort(source, "output")).filter(_.count() > 0))
-      val tgtPort = Option(Utils.findPort(target, "in")).filter(_.count() > 0)
-        .orElse(Option(Utils.findPort(target, "input")).filter(_.count() > 0))
-
-      val srcBox = srcPort.flatMap(p => Option(boxOf(p))).getOrElse(Utils.cellBox(source))
-      val tgtBox = tgtPort.flatMap(p => Option(boxOf(p))).getOrElse(Utils.cellBox(target))
-      if (srcBox == null || tgtBox == null) return
-
-      val srcX = if (srcPort.isDefined) srcBox.x + srcBox.width / 2.0 else srcBox.x + srcBox.width - 2.0
-      val srcY = srcBox.y + srcBox.height / 2.0
-      val tgtX = if (tgtPort.isDefined) tgtBox.x + tgtBox.width / 2.0 else tgtBox.x + 2.0
-      val tgtY = tgtBox.y + tgtBox.height / 2.0
-
-      page.mouse().move(srcX, srcY)
-      page.waitForTimeout(120)
-      page.mouse().down()
-      page.waitForTimeout(120)
-      page.mouse().move(tgtX, tgtY, new Mouse.MoveOptions().setSteps(25))
-      page.waitForTimeout(120)
-      page.mouse().up()
-      page.waitForTimeout(400)
-
-      val afterLinks = page.locator("g.joint-link").count()
-      if (afterLinks <= beforeLinks) {
-        val fallbackSrc = Utils.findPort(source, "out")
-        val fallbackTgt = Utils.findPort(target, "in")
-        if (fallbackSrc != null && fallbackTgt != null) {
-          val fbSrc = fallbackSrc.boundingBox()
-          val fbTgt = fallbackTgt.boundingBox()
-          if (fbSrc != null && fbTgt != null) {
-            page.mouse().move(fbSrc.x + fbSrc.width / 2.0, fbSrc.y + fbSrc.height / 2.0)
-            page.mouse().down()
-            page.mouse().move(fbTgt.x + fbTgt.width / 2.0, fbTgt.y + fbTgt.height / 2.0, new Mouse.MoveOptions().setSteps(20))
-            page.mouse().up()
-            page.waitForTimeout(300)
-          }
-        }
-      }
-    }
-  })
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -717,12 +895,11 @@ class OperatorControllerBuilder(protected val context: ControllerContext)
 //    new PropertyPanelControllerBuilder(ctx).resize(400).execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class PropertyPanelControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[PropertyPanelControllerBuilder] {
+class PropertyPanelControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
-  override protected def self: PropertyPanelControllerBuilder = this
-
-  def resize(height: Double = TestDataConfig.uiConfig.propertyPanelResizeHeight): PropertyPanelControllerBuilder = addStep(new ControllerStep {
+  // view full property panel
+  def resize(height: Double = TestDataConfig.uiConfig.propertyPanelResizeHeight): this.type = addStep(new ControllerStep {
     override def name = "Resize Property Panel"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -738,6 +915,7 @@ class PropertyPanelControllerBuilder(protected val context: ControllerContext)
           val last = cells.nth(cells.count() - 1)
           val body = last.locator("rect.body").first()
           if (body.count() > 0) Utils.clickWithCursor(page, body) else Utils.clickWithCursor(page, last)
+          // Select the last node to get property panel
           page.waitForTimeout(300)
         }
       }
@@ -745,18 +923,31 @@ class PropertyPanelControllerBuilder(protected val context: ControllerContext)
 
       val containerBox = container.boundingBox()
       if (containerBox == null) return
+      val currentHeight = containerBox.height
+      val dy = math.max(-220.0, math.min(220.0, height - currentHeight))
+      if (math.abs(dy) < 12) return
 
-      val x = containerBox.x + containerBox.width / 2.0
-      val y = containerBox.y + containerBox.height - 2.0
-      val viewport = page.viewportSize()
-      val targetY = if (viewport != null) math.max(y + height, viewport.height - 20) else y + height
+      // Resize via dedicated nz-resizable handles (avoid dragging the whole panel).
+      val resizeHandle =
+        container.locator(".ant-resizable-handle-bottom").first()
+          .or(container.locator(".ant-resizable-handle-bottomLeft").first())
+          .or(container.locator(".ant-resizable-handle-left").first())
+      if (resizeHandle.count() == 0) {
+        println("[PropertyPanel] Resize handle not found, skip resize")
+        return
+      }
 
-      page.mouse().move(x, y, new Mouse.MoveOptions().setSteps(15))
-      page.waitForTimeout(300)
+      Utils.waitVisible(resizeHandle)
+      val handleBox = resizeHandle.boundingBox()
+      if (handleBox == null) return
+      val startX = handleBox.x + handleBox.width / 2.0
+      val startY = handleBox.y + handleBox.height / 2.0
+
+      page.mouse().move(startX, startY, new Mouse.MoveOptions().setSteps(12))
       page.mouse().down()
-      page.mouse().move(x, targetY, new Mouse.MoveOptions().setSteps(30))
+      page.mouse().move(startX, startY + dy, new Mouse.MoveOptions().setSteps(22))
       page.mouse().up()
-      page.waitForTimeout(800)
+      page.waitForTimeout(300)
     }
   })
 }
@@ -770,36 +961,30 @@ class PropertyPanelControllerBuilder(protected val context: ControllerContext)
 //      .execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class DatasetControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[DatasetControllerBuilder] {
-
-  override protected def self: DatasetControllerBuilder = this
+class DatasetControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
   private var _datasetName: String = _
   private var _versionName: String = _
   private var _fileName: Option[String] = None
-  private var _fileSelectionStepAdded: Boolean = false
 
-  def datasetName(name: String): DatasetControllerBuilder = { _datasetName = name; self }
-  def datasetVersion(version: String): DatasetControllerBuilder = { _versionName = version; self }
-  def file(name: String): DatasetControllerBuilder = { _fileName = Some(name); self }
+  def datasetName(name: String): this.type = { _datasetName = name; this }
+  def datasetVersion(version: String): this.type = { _versionName = version; this }
+  def file(name: String): this.type = { _fileName = Some(name); this }
 
   /** Convenience: load dataset + version from TestDataConfig by key. */
-  def fromConfig(datasetKey: String): DatasetControllerBuilder = {
+  def fromConfig(datasetKey: String): this.type = {
     val ds = TestDataConfig.datasets(datasetKey)
     _datasetName = ds.name
     _versionName = ds.version
-    self
+    this
   }
 
-  override def build(): Controller = {
-    if (!_fileSelectionStepAdded) {
-      require(_datasetName != null && _datasetName.nonEmpty, "datasetName is required")
-      require(_versionName != null && _versionName.nonEmpty, "datasetVersion is required")
-      addStep(new FileSelectionStep(_datasetName, _versionName, _fileName))
-      _fileSelectionStepAdded = true
-    }
-    super.build()
+  override def execute(): Unit = {
+    require(_datasetName != null && _datasetName.nonEmpty, "datasetName is required")
+    require(_versionName != null && _versionName.nonEmpty, "datasetVersion is required")
+    addStep(new FileSelectionStep(_datasetName, _versionName, _fileName))
+    super.execute()
   }
 
   private class FileSelectionStep(datasetName: String, versionName: String, fileName: Option[String]) extends ControllerStep {
@@ -857,12 +1042,10 @@ class DatasetControllerBuilder(protected val context: ControllerContext)
 //      .execute()
 // ═══════════════════════════════════════════════════════════════════
 
-class FormControllerBuilder(protected val context: ControllerContext)
-  extends ControllerBuilder[FormControllerBuilder] {
+class FormControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
 
-  override protected def self: FormControllerBuilder = this
-
-  def fillField(fieldName: String, value: String): FormControllerBuilder = addStep(new ControllerStep {
+  def fillField(fieldName: String, value: String): this.type = addStep(new ControllerStep {
     override def name = s"Fill Field '$fieldName'"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -877,7 +1060,7 @@ class FormControllerBuilder(protected val context: ControllerContext)
     }
   })
 
-  def fillFieldValues(values: Map[String, String]): FormControllerBuilder = addStep(new ControllerStep {
+  def fillFieldValues(values: Map[String, String]): this.type = addStep(new ControllerStep {
     override def name = s"Fill ${values.size} Field Values"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -885,15 +1068,18 @@ class FormControllerBuilder(protected val context: ControllerContext)
         val field = page.getByTestId(s"form-field-$fieldKey").first()
         if (field.count() == 0) {
           println(s"  Field not found: $fieldKey")
-        } else if (!FormHelpers.tryFillSelect(page, field, Some(value)) &&
+        } else {
+          FormHelpers.focusField(page, field)
+          if (!FormHelpers.tryFillSelect(page, field, Some(value)) &&
           !FormHelpers.tryFillText(page, field, value)) {
-          println(s"  No supported input for field: $fieldKey")
+            println(s"  No supported input for field: $fieldKey")
+          }
         }
       }
     }
   })
 
-  def autoFillRequired(maxFields: Int = 12, defaultText: String = "test"): FormControllerBuilder = addStep(new ControllerStep {
+  def autoFillRequired(maxFields: Int = 12, defaultText: String = "test"): this.type = addStep(new ControllerStep {
     override def name = "Auto Fill Required Fields"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -903,6 +1089,7 @@ class FormControllerBuilder(protected val context: ControllerContext)
       for (i <- 0 until limit) {
         val field = fields.nth(i)
         if (FormHelpers.isFieldRequired(field)) {
+          // Select, first option; text, "text"; checkbox, true
           if (!FormHelpers.tryFillSelect(page, field) &&
             !FormHelpers.tryFillText(page, field, defaultText) &&
             !FormHelpers.tryCheckCheckbox(page, field)) {
@@ -913,7 +1100,7 @@ class FormControllerBuilder(protected val context: ControllerContext)
     }
   })
 
-  def autoFillFields(fieldKeys: Seq[String], defaultText: String = "test"): FormControllerBuilder = addStep(new ControllerStep {
+  def autoFillFields(fieldKeys: Seq[String], defaultText: String = "test"): this.type = addStep(new ControllerStep {
     override def name = s"Auto Fill ${fieldKeys.size} Fields"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -921,10 +1108,15 @@ class FormControllerBuilder(protected val context: ControllerContext)
         val field = page.getByTestId(s"form-field-$key").first()
         if (field.count() == 0) {
           println(s"  Field not found: $key")
-        } else if (!FormHelpers.tryFillSelect(page, field) &&
+        } else if (!FormHelpers.isFieldRequired(field) && FormHelpers.isBooleanLikeField(field)) {
+          println(s"  Skip optional boolean field: $key")
+        } else {
+          FormHelpers.focusField(page, field)
+          if (!FormHelpers.tryFillSelect(page, field) &&
           !FormHelpers.tryFillText(page, field, defaultText) &&
           !FormHelpers.tryCheckCheckbox(page, field)) {
-          println(s"  No supported input for field: $key")
+            println(s"  No supported input for field: $key")
+          }
         }
       }
     }

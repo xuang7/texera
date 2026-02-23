@@ -19,6 +19,9 @@ object TestDataConfig {
     UserAccount("texera", "texera"),
   )
 
+  // Path to an exported workflow JSON used by NavigationControllerBuilder.importWorkflow
+  val workflowJsonDir: String = "docs/src/main/scala/org/apache/texera/docs/config/sample.json"
+
   // Dataset
   val datasets = Map(
     "test1" -> Dataset(

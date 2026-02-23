@@ -25,19 +25,15 @@ object OperatorFieldPlanner {
 
   def autofillKeys(metadata: OperatorMetadata): Seq[String] = {
     fieldInfos(metadata)
-      .filter(_.autofill.nonEmpty)
+      .filter(_.autofill.nonEmpty) // "autofill"
       .map(_.key)
       .distinct
   }
 
   def requiredAutofillKeys(metadata: OperatorMetadata): Seq[String] = {
     (requiredKeys(metadata) ++ autofillKeys(metadata)).distinct
+    // Get all required field + with auto filled field
   }
-
-  //def requiredAutofillKeys(metadata: OperatorMetadata): Seq[String] = {
-  //  val autoKeys = autofillKeys(metadata).toSet
-  //  requiredKeys(metadata).filter(autoKeys.contains)
-  //}
 
   def fieldInfos(metadata: OperatorMetadata): Seq[FieldInfo] = {
     val required = requiredKeys(metadata).toSet

@@ -12,7 +12,7 @@ case class OperatorScenario(
                              operatorName: String,
                              category: String,
                              workflowKey: String,
-                             steps: Seq[ControllerStep],
+                             steps: Seq[ControllerStep], // [Prepare, Execute, Finish]
                              outputFileName: String
                            )
 
@@ -74,6 +74,9 @@ class VideoRunner {
       }
       val ctx = new ControllerContext(page)
       new Controller(scenario.steps).execute(ctx)
+      //   1. Prepare: Login
+      //   2. Execute: Import → Drag → Resize → AutoFill
+      //   3. Finish:  (no-op)
 
       // Final wait
       page.waitForTimeout(2000)

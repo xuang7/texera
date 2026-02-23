@@ -1,4 +1,3 @@
-// controllers/ControllerContext.scala
 package org.apache.texera.docs.controllers
 
 import com.microsoft.playwright.Page
@@ -44,34 +43,24 @@ class Controller(val steps: Seq[ControllerStep]) {
 }
 
 /**
- * Base builder — subclasses accumulate steps via fluent API, then build() / execute().
+ * Base builder — subclasses accumulate steps via fluent API, then execute().
  *
  * Usage:
- *   new XxxControllerBuilder(ctx).stepA(...).stepB(...).build().execute(ctx)
- *   // or shorthand:
- *   new XxxControllerBuilder(ctx).stepA(...).stepB(...).execute()
+ *   new LoginControllerBuilder(ctx).login("u","p").logout().execute()
  */
-trait ControllerBuilder[B <: ControllerBuilder[B]] {
-  protected val context: ControllerContext
-  protected val steps: ArrayBuffer[ControllerStep] = ArrayBuffer.empty
-  private var builtController: Option[Controller] = None
+abstract class ControllerBuilder(protected val context: ControllerContext) {
+  private val steps: ArrayBuffer[ControllerStep] = ArrayBuffer.empty
 
-  protected def self: B
-
-  protected def addStep(step: ControllerStep): B = {
-    require(builtController.isEmpty, "Cannot add steps after build() has been called")
+  protected def addStep(step: ControllerStep): this.type = {
     steps += step
-    self
+    this
   }
 
-  def build(): Controller = {
-    builtController.getOrElse {
-      val controller = new Controller(steps.toVector)
-      builtController = Some(controller)
-      controller
+  def execute(): Unit = {
+    steps.foreach { step =>
+      println(s"[${step.name}] Executing...")
+      step.run(context)
+      println(s"[${step.name}] Done")
     }
   }
-
-  /** Convenience: build + execute in one call. */
-  def execute(): Unit = build().execute(context)
 }

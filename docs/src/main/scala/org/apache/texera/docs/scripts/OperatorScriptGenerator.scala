@@ -31,16 +31,7 @@ import java.nio.file.{Files, Path, Paths}
 object OperatorScriptGenerator {
 
   private val outputDir: Path = Paths.get(
-    "docs",
-    "src",
-    "main",
-    "scala",
-    "org",
-    "apache",
-    "texera",
-    "docs",
-    "scripts",
-    "operators"
+    "docs", "src", "main", "scala", "org", "apache", "texera", "docs", "scripts", "operators"
   )
 
   private val visualizationGroups: Set[String] = Set(
@@ -53,23 +44,6 @@ object OperatorScriptGenerator {
     OperatorGroupConstants.VISUALIZATION_ADVANCED_GROUP
   )
 
-  private val dataCleaningGroups: Set[String] = Set(
-    OperatorGroupConstants.CLEANING_GROUP,
-    OperatorGroupConstants.JOIN_GROUP,
-    OperatorGroupConstants.SET_GROUP,
-    OperatorGroupConstants.AGGREGATE_GROUP,
-    OperatorGroupConstants.SORT_GROUP
-  )
-
-  private val machineLearningGroups: Set[String] = Set(
-    OperatorGroupConstants.MACHINE_LEARNING_GROUP,
-    OperatorGroupConstants.ADVANCED_SKLEARN_GROUP,
-    OperatorGroupConstants.SKLEARN_GROUP,
-    OperatorGroupConstants.SKLEARN_TRAINING_GROUP,
-    OperatorGroupConstants.HUGGINGFACE_GROUP,
-    OperatorGroupConstants.MACHINE_LEARNING_GENERAL_GROUP
-  )
-
   def main(args: Array[String]): Unit = {
     Files.createDirectories(outputDir)
 
@@ -79,11 +53,11 @@ object OperatorScriptGenerator {
     val groupPaths = buildGroupPathMap(OperatorGroupConstants.OperatorGroupOrderList)
 
     ops.foreach { m =>
-      val fileName = s"${classNameFor(m)}.scala"
+      val fileName = s"${classNameFor(m)}.scala" // "BarChartScript.scala"
       val groupPath = groupPaths.getOrElse(m.additionalMetadata.operatorGroupName, Seq(m.additionalMetadata.operatorGroupName))
       val targetDir = groupPath.foldLeft(outputDir) { case (dir, segment) =>
         dir.resolve(sanitizePath(segment))
-      }
+      } // operators/Visualization/Basic/BarChartScript.scala
       Files.createDirectories(targetDir)
       val content = renderScript(m)
       Files.write(targetDir.resolve(fileName), content.getBytes(StandardCharsets.UTF_8))
@@ -96,129 +70,47 @@ object OperatorScriptGenerator {
   }
 
   private def renderScript(m: OperatorMetadata): String = {
-    val className = classNameFor(m)
-    val operatorName = escape(m.additionalMetadata.userFriendlyName)
-    val operatorType = escape(m.operatorType)
-    val category = escape(m.additionalMetadata.operatorGroupName)
+    val className = classNameFor(m) // "BarChartScript"
+    val operatorName = escape(m.additionalMetadata.userFriendlyName) // "Bar Chart"
+    val operatorType = escape(m.operatorType) // "BarChart"
+    val category = escape(m.additionalMetadata.operatorGroupName) // "Visualization Basic"
     val workflowKey = if (visualizationGroups.contains(m.additionalMetadata.operatorGroupName)) "Workflow10" else "WorkflowA"
-    val outputFileName = s"${slugify(m.additionalMetadata.userFriendlyName)}_demo.webm"
+    val outputFileName = s"${slugify(m.additionalMetadata.userFriendlyName)}_demo.webm" // "bar-chart_demo.webm"
 
-    val isInput = m.additionalMetadata.operatorGroupName == OperatorGroupConstants.INPUT_GROUP
     val isVisualization = visualizationGroups.contains(m.additionalMetadata.operatorGroupName)
-    val isDataCleaning = dataCleaningGroups.contains(m.additionalMetadata.operatorGroupName)
-    val isMachineLearning = machineLearningGroups.contains(m.additionalMetadata.operatorGroupName)
-
-    val fileInputTypes = Set("FileScan", "CSVFileScan", "JSONLFileScan", "CSVOldFileScan", "ArrowSource")
-    val shouldSelectFile = isInput && fileInputTypes.contains(m.operatorType)
-    val isTextInput = isInput && m.operatorType == "TextInput"
 
     val autoFillKeys = if (isVisualization) OperatorFieldPlanner.requiredAutofillKeys(m) else Seq.empty
+
     val autoFillLiteral =
       if (autoFillKeys.nonEmpty) autoFillKeys.map(k => s""""$k"""").mkString("Seq(", ", ", ")")
       else "Seq.empty[String]"
+    val dragNextToArg = if (isVisualization) ", dragNextTo = Some(\"CSVFileScan-operator-\")" else ""
 
     val executeBody =
-      if (isVisualization) {
-        s"""    val dataset = TestDataConfig.datasets("test1")
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag("CSV File Scan", operatorType = Some("CSVFileScan"))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |
-           |    val datasetBuilder = new DatasetControllerBuilder(ctx)
-           |      .datasetName(dataset.name)
-           |      .datasetVersion(dataset.version)
-           |    dataset.files.headOption.foreach(datasetBuilder.file)
-           |    datasetBuilder.execute()
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag(operatorName, operatorType = Some(operatorType))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .connectLastTwo()
-           |      .execute()
-           |
-           |    if ($autoFillLiteral.nonEmpty) {
-           |      new FormControllerBuilder(ctx)
-           |        .autoFillFields($autoFillLiteral)
-           |        .execute()
-           |    }
-           |""".stripMargin
-      } else if (isDataCleaning || isMachineLearning) {
-        s"""    val dataset = TestDataConfig.datasets("test1")
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag("CSV File Scan", operatorType = Some("CSVFileScan"))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |
-           |    val datasetBuilder = new DatasetControllerBuilder(ctx)
-           |      .datasetName(dataset.name)
-           |      .datasetVersion(dataset.version)
-           |    dataset.files.headOption.foreach(datasetBuilder.file)
-           |    datasetBuilder.execute()
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag(operatorName, operatorType = Some(operatorType))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |
-           |    new OperatorControllerBuilder(ctx)
-           |      .connectLastTwo()
-           |      .execute()
-           |""".stripMargin
-      } else if (isInput) {
-        val fileSelection =
-          if (shouldSelectFile) {
-            s"""    val dataset = TestDataConfig.datasets("test1")
-               |    val datasetBuilder = new DatasetControllerBuilder(ctx)
-               |      .datasetName(dataset.name)
-               |      .datasetVersion(dataset.version)
-               |    dataset.files.headOption.foreach(datasetBuilder.file)
-               |    datasetBuilder.execute()
-               |""".stripMargin
-          } else if (isTextInput) {
-            s"""    new FormControllerBuilder(ctx)
-               |      .autoFillFields(Seq("textInput"), defaultText = "1,2,3,4,5,6")
-               |      .execute()
-               |""".stripMargin
-          } else ""
-
-        s"""    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag(operatorName, operatorType = Some(operatorType))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |
-           |$fileSelection
-           |""".stripMargin
-      } else {
-        s"""    new OperatorControllerBuilder(ctx)
-           |      .insertViaDrag(operatorName, operatorType = Some(operatorType))
-           |      .execute()
-           |
-           |    new PropertyPanelControllerBuilder(ctx)
-           |      .resize()
-           |      .execute()
-           |""".stripMargin
-      }
+      s"""    val workflow = TestDataConfig.workflows.getOrElse(
+         |      workflowKey,
+         |      throw new IllegalArgumentException(s"Workflow key not found in TestDataConfig: $$workflowKey")
+         |    )
+         |
+         |    new NavigationControllerBuilder(ctx)
+         |      .openWorkflow(workflow.id, workflow.name)
+         |      .importWorkflow(TestDataConfig.workflowJsonDir)
+         |      .execute()
+         |
+         |    new OperatorControllerBuilder(ctx)
+         |      .insertViaDrag(operatorName, operatorType = Some(operatorType)$dragNextToArg)
+         |      .execute()
+         |
+         |    new PropertyPanelControllerBuilder(ctx)
+         |      .resize()
+         |      .execute()
+         |
+         |    if ($autoFillLiteral.nonEmpty) {
+         |      new FormControllerBuilder(ctx)
+         |        .autoFillFields($autoFillLiteral)
+         |        .execute()
+         |    }
+         |""".stripMargin
 
     s"""package org.apache.texera.docs.scripts.operators
        |
@@ -238,15 +130,6 @@ object OperatorScriptGenerator {
        |      .getOrElse(throw new IllegalStateException("TestDataConfig.users is empty"))
        |    new LoginControllerBuilder(ctx)
        |      .login(user.username, user.password)
-       |      .execute()
-       |
-       |    val workflow = TestDataConfig.workflows.getOrElse(
-       |      workflowKey,
-       |      throw new IllegalArgumentException(s"Workflow key not found in TestDataConfig: $workflowKey")
-       |    )
-       |    new NavigationControllerBuilder(ctx)
-       |      .openWorkflow(workflow.id, workflow.name)
-       |      .cleanWorkflow()
        |      .execute()
        |  }
        |
@@ -271,7 +154,7 @@ object OperatorScriptGenerator {
   }
 
   private def slugify(s: String): String =
-    s.replaceAll("\\s+", "-").replaceAll("[^a-zA-Z0-9-]", "").toLowerCase
+    s.replaceAll("\\s+", "-").replaceAll("[^a-zA-Z0-9-]", "").toLowerCase // File name: "Bar Chart" → "bar-chart"
 
   private def renderRegistry(ops: Seq[OperatorMetadata]): String = {
     val names = ops.map(classNameFor).distinct.sorted
