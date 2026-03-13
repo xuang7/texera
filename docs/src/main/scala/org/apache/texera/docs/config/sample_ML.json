@@ -1,0 +1,253 @@
+{
+  "operators": [
+    {
+      "operatorID": "CSVFileScan-operator-c80a68ab-ac78-4d96-8ce7-6d8f4332bad1",
+      "operatorType": "CSVFileScan",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "fileEncoding": "UTF_8",
+        "customDelimiter": ",",
+        "hasHeader": true,
+        "fileName": "/texera/movies/v1/movies.csv"
+      },
+      "inputPorts": [],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "CSV File Scan",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    },
+    {
+      "operatorID": "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b",
+      "operatorType": "Split",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "k": 80,
+        "random": true,
+        "seed": 1
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        },
+        {
+          "portID": "output-1",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Split",
+      "dynamicInputPorts": true,
+      "dynamicOutputPorts": true
+    },
+    {
+      "operatorID": "SklearnPrediction-operator-130e335b-3d44-4301-9695-3a577851945b",
+      "operatorType": "SklearnPrediction",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "Model Attribute": "Model",
+        "Output Attribute Name": "prediction",
+        "Ground Truth Attribute Name to Ignore": "genre"
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "model",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        },
+        {
+          "portID": "input-1",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": [
+            {
+              "id": 0,
+              "internal": false
+            }
+          ]
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Sklearn Prediction",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    },
+    {
+      "operatorID": "BarChart-operator-8cd525b8-b07a-4b05-8041-78adebbebe6f",
+      "operatorType": "BarChart",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "categoryColumn": "prediction",
+        "horizontalOrientation": false,
+        "fields": "genre",
+        "value": "score"
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Bar Chart",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    },
+    {
+      "operatorID": "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5",
+      "operatorType": "Projection",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "isDrop": false,
+        "attributes": [
+          { "originalAttribute": "year", "alias": "" },
+          { "originalAttribute": "runtime", "alias": "" },
+          { "originalAttribute": "genre", "alias": "" },
+          { "originalAttribute": "score", "alias": "" }
+        ]
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Projection",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    }
+  ],
+  "operatorPositions": {
+    "CSVFileScan-operator-c80a68ab-ac78-4d96-8ce7-6d8f4332bad1": {
+      "x": 260,
+      "y": 260
+    },
+    "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b": {
+      "x": 430,
+      "y": 260
+    },
+    "SklearnPrediction-operator-130e335b-3d44-4301-9695-3a577851945b": {
+      "x": 740,
+      "y": 260
+    },
+    "BarChart-operator-8cd525b8-b07a-4b05-8041-78adebbebe6f": {
+      "x": 900,
+      "y": 260
+    },
+    "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5": {
+      "x": 580,
+      "y": 340
+    }
+  },
+  "links": [
+    {
+      "linkID": "link-33e3775e-234c-4bd4-9dd4-9f3a64c75989",
+      "source": {
+        "operatorID": "CSVFileScan-operator-c80a68ab-ac78-4d96-8ce7-6d8f4332bad1",
+        "portID": "output-0"
+      },
+      "target": {
+        "operatorID": "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b",
+        "portID": "input-0"
+      }
+    },
+    {
+      "linkID": "link-aed3d4df-9c94-4283-9fb1-89dff2296ab0",
+      "source": {
+        "operatorID": "SklearnPrediction-operator-130e335b-3d44-4301-9695-3a577851945b",
+        "portID": "output-0"
+      },
+      "target": {
+        "operatorID": "BarChart-operator-8cd525b8-b07a-4b05-8041-78adebbebe6f",
+        "portID": "input-0"
+      }
+    },
+    {
+      "linkID": "83e86236-1d5d-4947-abc6-05c3b7f7e1f7",
+      "source": {
+        "operatorID": "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b",
+        "portID": "output-1"
+      },
+      "target": {
+        "operatorID": "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5",
+        "portID": "input-0"
+      }
+    },
+    {
+      "linkID": "8df9935a-4293-416a-bc1a-31ea9fc2e9cc",
+      "source": {
+        "operatorID": "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5",
+        "portID": "output-0"
+      },
+      "target": {
+        "operatorID": "SklearnPrediction-operator-130e335b-3d44-4301-9695-3a577851945b",
+        "portID": "input-1"
+      }
+    }
+  ],
+  "commentBoxes": [],
+  "settings": {
+    "dataTransferBatchSize": 400,
+    "executionMode": "PIPELINED"
+  }
+}

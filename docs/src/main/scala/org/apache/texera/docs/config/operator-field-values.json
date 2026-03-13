@@ -1,0 +1,868 @@
+{
+  "dataset": {
+    "datasetName": "featured-dataset1",
+    "datasetVersion": "v6",
+    "fileName": "movies.csv",
+    "schema": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "rating",
+        "type": "string"
+      },
+      {
+        "name": "genre",
+        "type": "string"
+      },
+      {
+        "name": "year",
+        "type": "integer"
+      },
+      {
+        "name": "released",
+        "type": "string"
+      },
+      {
+        "name": "score",
+        "type": "double"
+      },
+      {
+        "name": "votes",
+        "type": "integer"
+      },
+      {
+        "name": "director",
+        "type": "string"
+      },
+      {
+        "name": "writer",
+        "type": "string"
+      },
+      {
+        "name": "star",
+        "type": "string"
+      },
+      {
+        "name": "country",
+        "type": "string"
+      },
+      {
+        "name": "budget",
+        "type": "double"
+      },
+      {
+        "name": "gross",
+        "type": "double"
+      },
+      {
+        "name": "company",
+        "type": "string"
+      },
+      {
+        "name": "runtime",
+        "type": "double"
+      }
+    ]
+  },
+  "operators": {
+    "Aggregate": {
+      "groupByKeys": "genre"
+    },
+    "ArrowSource": {
+      "fileName": "movies.csv",
+      "offset": 0
+    },
+    "AsterixDBSource": {
+      "offset": 0,
+      "keywordSearch": false,
+      "progressive": false,
+      "geoSearch": false,
+      "regexSearch": false,
+      "filterCondition": false
+    },
+    "BarChart": {
+      "fields": "genre",
+      "categoryColumn": "rating",
+      "horizontalOrientation": false,
+      "pattern": "country",
+      "value": "score"
+    },
+    "BoxViolinPlot": {
+      "value": "score",
+      "Quartile Method": "linear",
+      "horizontalOrientation": false,
+      "violinPlot": false
+    },
+    "BubbleChart": {
+      "xValue": "budget",
+      "yValue": "gross",
+      "zValue": "votes",
+      "enableColor": false,
+      "colorColumn": ""
+    },
+    "BulletChart": {
+      "value": "gross",
+      "deltaReference": 100
+    },
+    "CSVFileScan": {
+      "fileName": "movies.csv",
+      "fileEncoding": "UTF_8",
+      "offset": 0,
+      "customDelimiter": ",",
+      "hasHeader": true
+    },
+    "CSVOldFileScan": {
+      "fileName": "movies.csv",
+      "fileEncoding": "UTF_8",
+      "offset": 0,
+      "customDelimiter": ",",
+      "hasHeader": true
+    },
+    "CandlestickChart": {
+      "date": "released",
+      "open": "budget",
+      "high": "gross",
+      "low": "votes",
+      "close": "score"
+    },
+    "CartesianProduct": {},
+    "ChoroplethMap": {
+      "locations": "country",
+      "color": "gross"
+    },
+    "ContinuousErrorBands": {
+      "xLabel": "Budget",
+      "yLabel": "Gross Revenue"
+    },
+    "ContourPlot": {
+      "gridSize": "10",
+      "connectGaps": true,
+      "x": "budget",
+      "y": "score",
+      "z": "gross",
+      "Coloring Method": "heatmap"
+    },
+    "Dendrogram": {
+      "xVal": "budget",
+      "yVal": "gross",
+      "Labels": "name"
+    },
+    "DictionaryMatcher": {
+      "Dictionary": "genre",
+      "Attribute": "name",
+      "result attribute": "match_result",
+      "Matching type": "Scan"
+    },
+    "Difference": {},
+    "Distinct": {},
+    "DotPlot": {
+      "Count Attribute": "genre"
+    },
+    "DualInputPortsPythonUDFV2": {
+      "code": "# Choose from the following templates:\n# \n# from pytexera import *\n# \n# class ProcessTupleOperator(UDFOperatorV2):\n#     \n#     @overrides\n#     def process_tuple(self, tuple_: Tuple, port: int) -> Iterator[Optional[TupleLike]]:\n#         yield tuple_\n# \n# class ProcessBatchOperator(UDFBatchOperator):\n#     BATCH_SIZE = 10 # must be a positive integer\n# \n#     @overrides\n#     def process_batch(self, batch: Batch, port: int) -> Iterator[Optional[BatchLike]]:\n#         yield batch\n# \n# class ProcessTableOperator(UDFTableOperator):\n# \n#     @overrides\n#     def process_table(self, table: Table, port: int) -> Iterator[Optional[TableLike]]:\n#         yield table\n",
+      "workers": 1,
+      "retainInputColumns": true,
+      "outputColumns": "genre"
+    },
+    "DumbbellPlot": {
+      "categoryColumnName": "genre",
+      "dumbbellStartValue": "budget",
+      "dumbbellEndValue": "gross",
+      "measurementColumnName": "score",
+      "comparedColumnName": "year",
+      "showLegends": true
+    },
+    "Dummy": {},
+    "FigureFactoryTable": {
+      "fontSize": 12,
+      "rowHeight": 30,
+      "add attribute": [{"attributeName": "star"}, {"attributeName": "name"}, {"attributeName": "genre"}]
+    },
+    "FileScan": {
+      "fileName": "movies.csv",
+      "encoding": "UTF_8",
+      "extract": false,
+      "outputFileName": "movies.csv",
+      "attributeType": "string",
+      "attributeName": "name"
+    },
+    "FilledAreaPlot": {
+      "x": "year",
+      "y": "gross",
+      "lineGroup": "genre",
+      "color": "rating",
+      "facetColumn": false,
+      "pattern": "country"
+    },
+    "Filter": {
+      "predicates": [
+        {
+          "attribute": "prediction",
+          "condition": "is not null"
+        }
+      ]
+    },
+    "FunnelPlot": {
+      "x": "genre",
+      "y": "gross",
+      "color": "rating"
+    },
+    "GanttChart": {
+      "pattern": "genre",
+      "start": "released",
+      "finish": "released",
+      "task": "name",
+      "color": "genre"
+    },
+    "GaugeChart": {
+      "value": "score"
+    },
+    "HTMLVisualizer": {
+      "htmlContentAttrName": "name"
+    },
+    "HashJoin": {
+      "buildAttributeName": "genre",
+      "probeAttributeName": "genre",
+      "joinType": "inner"
+    },
+    "HeatMap": {
+      "x": "budget",
+      "y": "gross",
+      "Values": "score"
+    },
+    "HierarchyChart": {
+      "hierarchyChartType": "treemap",
+      "hierarchy": [{"attributeName": "genre"}],
+      "value": "gross"
+    },
+    "Histogram": {
+      "color": "genre",
+      "separateBy": "rating",
+      "pattern": "country",
+      "value": "score"
+    },
+    "Histogram2D": {
+      "xColumn": "budget",
+      "yColumn": "gross",
+      "xBins": 10,
+      "yBins": 10,
+      "normalize": "density"
+    },
+    "HuggingFaceIrisLogisticRegression": {
+      "petalLengthCmAttribute": "budget",
+      "petalWidthCmAttribute": "runtime",
+      "prediction class name": "iris_class",
+      "prediction probability name": "iris_probability"
+    },
+    "HuggingFaceSentimentAnalysis": {
+      "attribute": "name",
+      "Positive result attribute": "positive_sentiment",
+      "Neutral result attribute": "neutral_sentiment",
+      "Negative result attribute": "negative_sentiment"
+    },
+    "HuggingFaceSpamSMSDetection": {
+      "attribute": "name",
+      "Spam result attribute": "is_spam",
+      "Score result attribute": "spam_score"
+    },
+    "HuggingFaceTextSummarization": {
+      "attribute": "name",
+      "Result attribute name": "summary"
+    },
+    "IcicleChart": {
+      "hierarchy": "genre",
+      "value": "gross"
+    },
+    "If": {
+      "conditionName": "genre"
+    },
+    "ImageVisualizer": {
+      "binaryContent": "name"
+    },
+    "Intersect": {},
+    "IntervalJoin": {
+      "constant": 10,
+      "includeLeftBound": true,
+      "includeRightBound": true,
+      "timeIntervalType": "day",
+      "leftAttributeName": "score",
+      "rightAttributeName": "budget"
+    },
+    "JSONLFileScan": {
+      "fileName": "movies.csv",
+      "fileEncoding": "UTF_8",
+      "offset": 0,
+      "flatten": false
+    },
+    "JavaUDF": {
+      "code": "import org.apache.texera.amber.operator.map.MapOpExec;\nimport org.apache.texera.amber.core.tuple.Tuple;\nimport org.apache.texera.amber.core.tuple.TupleLike;\nimport scala.Function1;\nimport java.io.Serializable;\n\npublic class JavaUDFOpExec extends MapOpExec {\n    public JavaUDFOpExec () {\n        this.setMapFunc((Function1<Tuple, TupleLike> & Serializable) this::processTuple);\n    }\n    \n    public TupleLike processTuple(Tuple tuple) {\n        return tuple;\n    }\n}",
+      "workers": 1,
+      "retainInputColumns": true,
+      "outputColumns": "genre"
+    },
+    "KNNClassifierTrainer": {
+      "groundTruthAttribute": "genre",
+      "Selected Features": [
+        "budget",
+        "runtime"
+      ]
+    },
+    "KNNRegressorTrainer": {
+      "groundTruthAttribute": "score",
+      "Selected Features": [
+        "budget",
+        "runtime"
+      ]
+    },
+    "KeywordSearch": {
+      "attribute": "name",
+      "keyword": "action"
+    },
+    "Limit": {
+      "limit": 100
+    },
+    "LineChart": {
+      "yLabel": "Gross Revenue",
+      "xLabel": "Year",
+      "lines": [{"x": "year", "y": "gross"}]
+    },
+    "MySQLSource": {
+      "offset": 0,
+      "keywordSearch": false,
+      "progressive": false
+    },
+    "NestedTable": {
+      "add attribute": [{"attributeGroup": "Cast", "originalName": "star", "name": "Actor"}, {"attributeGroup": "Cast", "originalName": "director", "name": "Director"}]
+    },
+    "NetworkGraph": {
+      "source": "director",
+      "destination": "star",
+      "title": "Director-Actor Network"
+    },
+    "PieChart": {
+      "value": "gross",
+      "name": "genre"
+    },
+    "PostgreSQLSource": {
+      "offset": 0,
+      "keywordSearch": false,
+      "progressive": false
+    },
+    "Projection": {
+      "isDrop": false,
+      "attributes": [
+        {
+          "originalAttribute": "prediction",
+          "alias": ""
+        }
+      ]
+    },
+    "PythonLambdaFunction": {
+      "lambdaAttributeUnits": "score"
+    },
+    "PythonTableReducer": {
+      "lambdaAttributeUnits": "score"
+    },
+    "PythonUDFSourceV2": {
+      "code": "# from pytexera import *\n# class GenerateOperator(UDFSourceOperator):\n# \n#     @overrides\n#     \n#     def produce(self) -> Iterator[Union[TupleLike, TableLike, None]]:\n#         yield\n",
+      "workers": 1,
+      "columns": "name"
+    },
+    "PythonUDFV2": {
+      "code": "# Choose from the following templates:\n# \n# from pytexera import *\n# \n# class ProcessTupleOperator(UDFOperatorV2):\n#     \n#     @overrides\n#     def process_tuple(self, tuple_: Tuple, port: int) -> Iterator[Optional[TupleLike]]:\n#         yield tuple_\n# \n# class ProcessBatchOperator(UDFBatchOperator):\n#     BATCH_SIZE = 10 # must be a positive integer\n# \n#     @overrides\n#     def process_batch(self, batch: Batch, port: int) -> Iterator[Optional[BatchLike]]:\n#         yield batch\n# \n# class ProcessTableOperator(UDFTableOperator):\n# \n#     @overrides\n#     def process_table(self, table: Table, port: int) -> Iterator[Optional[TableLike]]:\n#         yield table\n",
+      "workers": 1,
+      "retainInputColumns": true,
+      "outputColumns": "genre"
+    },
+    "QuiverPlot": {
+      "x": "budget",
+      "y": "gross",
+      "u": "votes",
+      "v": "runtime"
+    },
+    "RUDF": {
+      "code": "# If using Table API:\n# function(table, port) { \n#   return (table) \n# }\n\n# If using Tuple API:\n# library(coro)\n# coro::generator(function(tuple, port) {\n#   yield (tuple)\n# })",
+      "workers": 1,
+      "useTupleAPI": false,
+      "retainInputColumns": true,
+      "outputColumns": "genre"
+    },
+    "RUDFSource": {
+      "code": "# If using Table API:\n# function() { \n#   return (data.frame(Column_Here = \"Value_Here\")) \n# }\n\n# If using Tuple API:\n# library(coro)\n# coro::generator(function() {\n#   yield (list(text= \"hello world!\"))\n# })",
+      "workers": 1,
+      "useTupleAPI": false,
+      "columns": "name"
+    },
+    "RandomKSampling": {
+      "random k sample percentage": 1
+    },
+    "RangeSlider": {
+      "Y-axis": "gross",
+      "X-axis": "budget",
+      "Duplicates": "Nothing"
+    },
+    "RedditSearch": {
+      "query": "action movies",
+      "limit": 100,
+      "sorting": "none"
+    },
+    "Regex": {
+      "caseInsensitive": false,
+      "attribute": "name",
+      "regex": "[Tt]he\\s+"
+    },
+    "ReservoirSampling": {
+      "number of item sampled in reservoir sampling": 1
+    },
+    "SVCTrainer": {
+      "groundTruthAttribute": "genre",
+      "Selected Features": ["budget", "runtime"]
+    },
+    "SVRTrainer": {
+      "groundTruthAttribute": "score",
+      "Selected Features": ["budget", "runtime"]
+    },
+    "SankeyDiagram": {
+      "Source Attribute": "genre",
+      "Target Attribute": "rating",
+      "Value Attribute": "gross"
+    },
+    "Scatter3DChart": {
+      "x": "budget",
+      "y": "gross",
+      "z": "score"
+    },
+    "ScatterMatrixChart": {
+      "Selected Attributes": ["score", "budget", "gross"],
+      "Color": "genre"
+    },
+    "Scatterplot": {
+      "xColumn": "budget",
+      "yColumn": "gross",
+      "alpha": 1.0,
+      "colorColumn": "genre",
+      "xLogScale": false,
+      "yLogScale": false,
+      "hoverName": "name"
+    },
+    "Scorer": {
+      "isRegression": false,
+      "actualValueColumn": "genre",
+      "predictValueColumn": "prediction"
+    },
+    "SklearnAdaptiveBoosting": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnBagging": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnBernoulliNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnComplementNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnDecisionTree": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnDummyClassifier": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnExtraTree": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnExtraTrees": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnGaussianNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnGradientBoosting": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnKNN": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnLinearRegression": {
+      "target": "score",
+      "degree": 1
+    },
+    "SklearnLinearSVM": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnLogisticRegression": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnLogisticRegressionCV": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnMultiLayerPerceptron": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnMultinomialNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnNearestCentroid": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnPassiveAggressive": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnPerceptron": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnPrediction": {
+      "Model Attribute": "Model",
+      "Output Attribute Name": "predicted_value",
+      "Ground Truth Attribute Name to Ignore": "genre"
+    },
+    "SklearnProbabilityCalibration": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnRandomForest": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnRidge": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnRidgeCV": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnSDG": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnSVM": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTesting": {
+      "isRegression": false,
+      "model": "director",
+      "target": "genre"
+    },
+    "SklearnTrainingAdaptiveBoosting": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingBagging": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingBernoulliNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingComplementNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingDecisionTree": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingDummyClassifier": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingExtraTree": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingExtraTrees": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingGaussianNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingGradientBoosting": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingKNN": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingLinearRegression": {
+      "target": "score",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingLinearSVM": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingLogisticRegression": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingLogisticRegressionCV": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingMultiLayerPerceptron": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingMultinomialNaiveBayes": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingNearestCentroid": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingPassiveAggressive": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingPerceptron": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingProbabilityCalibration": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingRandomForest": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingRidge": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingRidgeCV": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingSDG": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "SklearnTrainingSVM": {
+      "target": "genre",
+      "countVectorizer": false,
+      "text": "name",
+      "tfidfTransformer": false
+    },
+    "Sleep": {
+      "sleepTime": 1
+    },
+    "Sort": {
+      "attributes": "score"
+    },
+    "SortPartitions": {
+      "sortAttributeName": "score",
+      "domainMin": "budget",
+      "domainMax": "gross"
+    },
+    "Split": {
+      "k": 80,
+      "random": true,
+      "seed": 1
+    },
+    "StableMergeSort": {
+      "keys": "score"
+    },
+    "StripChart": {
+      "x": "genre",
+      "y": "score",
+      "colorBy": "rating",
+      "facetColumn": "country"
+    },
+    "SubstringSearch": {
+      "attribute": "name",
+      "substring": "Star",
+      "isCaseSensitive": false
+    },
+    "SymmetricDifference": {},
+    "TablesPlot": {
+      "add attribute": [{"attributeName": "name"}, {"attributeName": "genre"}, {"attributeName": "score"}]
+    },
+    "TernaryPlot": {
+      "firstVariable": "budget",
+      "secondVariable": "gross",
+      "thirdVariable": "votes",
+      "colorEnabled": false,
+      "colorDataField": "genre"
+    },
+    "TextInput": {
+      "textInput": "name",
+      "attributeType": "string",
+      "attributeName": "name"
+    },
+    "TimeSeriesPlot": {
+      "timeColumn": "year",
+      "valueColumn": "gross",
+      "categoryColumn": "genre",
+      "facetColumn": "country",
+      "line": "line",
+      "slider": false
+    },
+    "TreePlot": {
+      "Edge List Column": "director"
+    },
+    "TwitterFullArchiveSearch": {
+      "stopWhenRateLimited": false,
+      "searchQuery": "action movies",
+      "fromDateTime": "2021-04-01T00:00:00Z",
+      "toDateTime": "2021-05-01T00:00:00Z",
+      "limit": 100
+    },
+    "TwitterSearch": {
+      "stopWhenRateLimited": false,
+      "searchQuery": "action movies",
+      "limit": 100
+    },
+    "TypeCasting": {},
+    "URLFetcher": {
+      "decodingMethod": "UTF-8"
+    },
+    "URLVisualizer": {},
+    "Union": {},
+    "UnnestString": {
+      "Delimiter": ",",
+      "Attribute": "star",
+      "Result attribute": "star_unnested"
+    },
+    "VolcanoPlot": {
+      "effectColumn": "budget",
+      "pvalueColumn": "score"
+    },
+    "WaterfallChart": {
+      "xColumn": "genre",
+      "yColumn": "gross"
+    },
+    "WordCloud": {
+      "textColumn": "name",
+      "topN": 100
+    }
+  }
+}
