@@ -101,22 +101,66 @@ object Utils {
   }
 
   def chooseDropdownOptionByText(page: Page, text: String): Unit = {
+    val target = text.trim
     val dropdown = page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
     waitVisible(dropdown)
 
-    val exactOption = dropdown.getByText(text, new Locator.GetByTextOptions().setExact(true)).first()
-    if (exactOption.count() > 0) {
-      waitVisible(exactOption)
-      clickWithCursor(page, exactOption)
-      return
+    def exactOption(): Locator =
+      dropdown.getByText(target, new Locator.GetByTextOptions().setExact(true)).first()
+
+    def clickIfFound(option: Locator): Boolean = {
+      if (option.count() == 0) return false
+      try option.scrollIntoViewIfNeeded() catch { case _: Exception => }
+      waitVisible(option)
+      clickWithCursor(page, option)
+      true
     }
 
-    val fuzzyOption = dropdown.getByText(text, new Locator.GetByTextOptions().setExact(false)).first()
-    if (fuzzyOption.count() == 0) {
-      throw new RuntimeException(s"Dropdown option not found: $text")
+    if (clickIfFound(exactOption())) return
+
+    // Try dropdown search input first (if this select supports typing filter).
+    val localSearch = dropdown
+      .locator("input[type='search'], input[aria-autocomplete='list'], .ant-select-selection-search input")
+      .first()
+    if (localSearch.count() > 0) {
+      try {
+        clickWithCursor(page, localSearch)
+        localSearch.fill("")
+        localSearch.fill(target)
+        page.waitForTimeout(150)
+        if (clickIfFound(exactOption())) return
+      } catch {
+        case _: Exception =>
+      }
+    } else {
+      val globalSearch = page.locator(".ant-select-selection-search input").last()
+      if (globalSearch.count() > 0) {
+        try {
+          clickWithCursor(page, globalSearch)
+          globalSearch.fill("")
+          globalSearch.fill(target)
+          page.waitForTimeout(150)
+          if (clickIfFound(exactOption())) return
+        } catch {
+          case _: Exception =>
+        }
+      }
     }
-    waitVisible(fuzzyOption)
-    clickWithCursor(page, fuzzyOption)
+
+    // Fallback for long virtualized lists: scroll in dropdown and retry exact match.
+    try hoverWithCursor(page, dropdown, steps = 10) catch { case _: Exception => }
+    var i = 0
+    while (i < 24) {
+      if (clickIfFound(exactOption())) return
+      page.mouse().wheel(0, 320)
+      page.waitForTimeout(100)
+      i += 1
+    }
+
+    val fuzzyOption = dropdown.getByText(target, new Locator.GetByTextOptions().setExact(false)).first()
+    if (clickIfFound(fuzzyOption)) return
+
+    throw new RuntimeException(s"Dropdown option not found: $text")
   }
 
   // ── Shared geometry helpers ──
@@ -166,17 +210,4 @@ object Utils {
     }
   }
 
-  def findPort(cell: Locator, group: String): Locator = {
-    val byGroupMagnet = cell.locator(s"circle.port-body[port-group='$group'][magnet]").first()
-    if (byGroupMagnet.count() > 0) return byGroupMagnet
-
-    val byGroupBody = cell.locator(s"circle.port-body[port-group='$group']").first()
-    if (byGroupBody.count() > 0) return byGroupBody
-
-    val anyMagnet = cell.locator("[magnet]").first()
-    if (anyMagnet.count() > 0) return anyMagnet
-
-    val anyBody = cell.locator(".port-body").first()
-    if (anyBody.count() > 0) anyBody else null
-  }
 }

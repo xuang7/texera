@@ -14,6 +14,11 @@ object VideoScenarioScripts {
   def visualizationBasicScenarios: Seq[OperatorScenario] =
     OperatorScriptRegistry.byGroup(OperatorGroupConstants.VISUALIZATION_BASIC_GROUP).map(toScenario)
 
+  def scenarios: Seq[OperatorScenario] =
+    OperatorScriptRegistry
+      .byGroup(OperatorGroupConstants.VISUALIZATION_ADVANCED_GROUP)
+      .map(toScenario)
+
   val allScenarios: Seq[OperatorScenario] = visualizationBasicScenarios
   //   val allScenarios = visualizationBasicScenarios ++ dataInputScenarios ++
 

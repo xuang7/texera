@@ -7,6 +7,7 @@ case class UiConfig(
                      recordWidth: Int,
                      recordHeight: Int,
                      slowMo: Int,
+                     resultPanelHoldMs: Int,
                      propertyPanelResizeHeight: Double,
                      operatorPosX: Double,
                      operatorPosY: Double
@@ -21,13 +22,14 @@ object TestDataConfig {
 
   // Path to an exported workflow JSON used by NavigationControllerBuilder.importWorkflow
   val workflowJsonDir: String = "docs/src/main/scala/org/apache/texera/docs/config/sample.json"
+  val workflowJsonDir_ML: String = "docs/src/main/scala/org/apache/texera/docs/config/sample_ML.json"
 
   // Dataset
   val datasets = Map(
     "test1" -> Dataset(
-      name = "test1",
-      version = "v1",
-      files = Seq("IMDb_All_Genres_etf_clean1.csv")
+      name = "featured-dataset1",
+      version = "v6",
+      files = Seq("movies.csv")
     ),
   )
 
@@ -44,11 +46,12 @@ object TestDataConfig {
     recordHeight = 768,
     //1280, 720
     slowMo = 400,
+    resultPanelHoldMs = 5000,
     propertyPanelResizeHeight = 300.0,
     operatorPosX = 0.33,
     operatorPosY = 0.4
   )
 
   // Video output directory
-  val videoOutputDir = "docs/generated/videos"
+  val videoOutputDir = "docs/generated/videos-demo"
 }

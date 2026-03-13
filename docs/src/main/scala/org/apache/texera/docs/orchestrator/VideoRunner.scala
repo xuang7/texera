@@ -4,7 +4,7 @@ package org.apache.texera.docs.orchestrator
 import com.microsoft.playwright._
 import com.microsoft.playwright.options.LoadState
 import org.apache.texera.docs.config.TestDataConfig
-import org.apache.texera.docs.controllers.{Controller, ControllerContext, ControllerStep}
+import org.apache.texera.docs.controllers.{Controller, ControllerContext, ControllerStep, LoginControllerBuilder}
 
 import java.nio.file.{Files, Paths}
 
@@ -28,6 +28,7 @@ class VideoRunner {
         .setHeadless(false)
         .setSlowMo(TestDataConfig.uiConfig.slowMo)
     )
+    val storageState = loginOnce(browser)
 
     println(s"\n╔════════════════════════════════════════════════════╗")
     println(s"║  Generating ${scenarios.length} operator videos")
@@ -35,7 +36,7 @@ class VideoRunner {
 
     scenarios.foreach { scenario =>
       println(s"\n Generating: ${scenario.operatorName}")
-      generateSingleVideo(browser, scenario, videoDir)
+      generateSingleVideo(browser, storageState, scenario, videoDir)
     }
 
     println(s"\n╔════════════════════════════════════════════════════╗")
@@ -48,6 +49,7 @@ class VideoRunner {
 
   private def generateSingleVideo(
                                    browser: Browser,
+                                   storageState: Option[String],
                                    scenario: OperatorScenario,
                                    videoDir: java.nio.file.Path
                                  ): Unit = {
@@ -61,6 +63,7 @@ class VideoRunner {
         TestDataConfig.uiConfig.recordWidth,
         TestDataConfig.uiConfig.recordHeight
       )
+    storageState.foreach(options.setStorageState)
 
     val context = browser.newContext(options)
 
@@ -73,13 +76,16 @@ class VideoRunner {
         page.waitForLoadState(LoadState.NETWORKIDLE)
       }
       val ctx = new ControllerContext(page)
-      new Controller(scenario.steps).execute(ctx)
+      val steps =
+        if (storageState.nonEmpty) scenario.steps.filterNot(_.name.startsWith("Prepare:"))
+        else scenario.steps
+      new Controller(if (steps.nonEmpty) steps else scenario.steps).execute(ctx)
       //   1. Prepare: Login
       //   2. Execute: Import → Drag → Resize → AutoFill
       //   3. Finish:  (no-op)
 
-      // Final wait
-      page.waitForTimeout(2000)
+      // Hold on the final screen so result panel is visible in the recording.
+      page.waitForTimeout(TestDataConfig.uiConfig.resultPanelHoldMs.toDouble)
       println(s"  Completed: ${scenario.operatorName}")
 
     } catch {
@@ -113,6 +119,36 @@ class VideoRunner {
     } catch {
       case e: Exception =>
         println(s"Warning: Could not rename video - ${e.getMessage}")
+    }
+  }
+
+  private def loginOnce(browser: Browser): Option[String] = {
+    val options = new Browser.NewContextOptions()
+      .setViewportSize(
+        TestDataConfig.uiConfig.recordWidth,
+        TestDataConfig.uiConfig.recordHeight
+      )
+    val context = browser.newContext(options)
+    val page = context.newPage()
+
+    try {
+      page.navigate(TestDataConfig.baseUrl)
+      page.waitForLoadState(LoadState.NETWORKIDLE)
+      page.waitForTimeout(400)
+
+      val user = TestDataConfig.users.headOption
+        .getOrElse(throw new IllegalStateException("TestDataConfig.users is empty"))
+      val ctl = new LoginControllerBuilder(new ControllerContext(page))
+      ctl.login(user.username, user.password).execute()
+
+      Some(context.storageState())
+    } catch {
+      case e: Exception =>
+        println(s"Warning: loginOnce failed, fallback to per-scenario prepare login. ${e.getMessage}")
+        None
+    } finally {
+      try context.close()
+      catch { case _: Exception => }
     }
   }
 }

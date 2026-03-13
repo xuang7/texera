@@ -1,9 +1,11 @@
 package org.apache.texera.docs.controllers
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.microsoft.playwright._
 import com.microsoft.playwright.options.{AriaRole, LoadState, WaitForSelectorState, WaitUntilState}
 import org.apache.texera.amber.operator.metadata.{GroupInfo, OperatorGroupConstants, OperatorMetadataGenerator}
 import org.apache.texera.docs.config.TestDataConfig
+import scala.jdk.CollectionConverters._
 
 // ═══════════════════════════════════════════════════════════════════
 // Shared form-filling helpers
@@ -11,7 +13,7 @@ import org.apache.texera.docs.config.TestDataConfig
 
 private[controllers] object FormHelpers {
 
-  private def firstVisible(locator: Locator): Option[Locator] = {
+  private[controllers] def firstVisible(locator: Locator): Option[Locator] = {
     val count = locator.count()
     var i = 0
     while (i < count) {
@@ -36,6 +38,7 @@ private[controllers] object FormHelpers {
     field
   }
 
+  // Find the interactive element
   def focusField(page: Page, field: Locator): Unit = {
     val scope = fieldScope(field)
     try scope.scrollIntoViewIfNeeded() catch { case _: Exception => }
@@ -51,7 +54,7 @@ private[controllers] object FormHelpers {
   }
 
   def isFieldRequired(field: Locator): Boolean = {
-    // Find the required field in property panel
+    // Find the required field in property panel CSS.
     field.locator("label.ant-form-item-required").count() > 0 ||
       field.locator(".ant-form-item-required").count() > 0 ||
       field.locator("[aria-required='true']").count() > 0 ||
@@ -61,6 +64,7 @@ private[controllers] object FormHelpers {
   def tryFillFieldContainer(page: Page, container: Locator, value: String): Boolean = {
     if (container.count() == 0) return false
 
+    // First fill in plain text
     val textInput = container.locator(
       "xpath=.//textarea | .//input[not(@type='checkbox') and not(@type='radio')]"
     ).first()
@@ -70,7 +74,7 @@ private[controllers] object FormHelpers {
       return true
     }
 
-    val select = container.locator("xpath=.//nz-select").first() // Select first option
+    val select = container.locator("xpath=.//nz-select").first()
     if (select.count() > 0) {
       Utils.clickWithCursor(page, select)
       if (value.trim.nonEmpty) Utils.chooseDropdownOptionByText(page, value)
@@ -82,11 +86,13 @@ private[controllers] object FormHelpers {
 
   def tryFillSelect(page: Page, field: Locator, value: Option[String] = None): Boolean = {
     val scope = fieldScope(field)
-    val selector = firstVisible(
-      scope.locator(".ant-select-selector, [role='combobox'], nz-select, .ant-select")
-    ).orElse {
-      firstVisible(field.locator(".ant-select-selector, [role='combobox'], nz-select, .ant-select"))
-    }.orNull
+    val selector = Seq(".ant-select-selector", ".ant-select", "[role='combobox']", "nz-select")
+      .view
+      .flatMap { q =>
+        firstVisible(scope.locator(q)).orElse(firstVisible(field.locator(q)))
+      }
+      .headOption
+      .orNull
     if (selector == null || selector.count() == 0) return false
 
     if (value.isEmpty) {
@@ -95,18 +101,87 @@ private[controllers] object FormHelpers {
       if (placeholder.count() == 0 && selected.count() > 0) return true
     }
 
-    focusField(page, field)
+    // Close any stale dropdown first, otherwise selection can be applied to the wrong field.
+    if (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() > 0) {
+      try page.keyboard().press("Escape") catch { case _: Exception => }
+      page.waitForTimeout(100)
+    }
+
+    try selector.scrollIntoViewIfNeeded() catch { case _: Exception => }
     Utils.clickWithCursor(page, selector)
+
+    // retry limit: 8
     var retries = 0
     while (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() == 0 && retries < 8) {
       page.waitForTimeout(100)
       retries += 1
     }
+    // Some selects need one more click to open.
+    if (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() == 0) {
+      Utils.clickWithCursor(page, selector)
+      retries = 0
+      while (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() == 0 && retries < 8) {
+        page.waitForTimeout(100)
+        retries += 1
+      }
+    }
+
     value.filter(_.trim.nonEmpty) match {
-      case Some(v) => Utils.chooseDropdownOptionByText(page, v)
+      case Some(v) =>
+        try {
+          Utils.chooseDropdownOptionByText(page, v)
+        } catch {
+          case _: Exception =>
+            // Configured value may belong to another dataset/schema.
+            // Fallback to first visible option so script can keep progressing.
+            println(s"  [WARN] Dropdown value not found: '$v', fallback to first option")
+            Utils.chooseFirstDropdownOption(page)
+        }
       case _       => Utils.chooseFirstDropdownOption(page)
     }
+
+    // Ensure dropdown is closed before moving to the next field.
+    if (page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").count() > 0) {
+      try page.keyboard().press("Escape") catch { case _: Exception => }
+      page.waitForTimeout(80)
+    }
     true
+  }
+
+  def tryFillSelectMany(page: Page, field: Locator, values: Seq[String]): Boolean = {
+    val clean = values.map(_.trim).filter(_.nonEmpty)
+    if (clean.isEmpty) return true
+    clean.foreach { v =>
+      if (!tryFillSelect(page, field, Some(v))) return false
+      page.waitForTimeout(80)
+    }
+
+    val scope = fieldScope(field)
+    def norm(s: String): String = s.trim.toLowerCase
+    def selectedNow: Set[String] = {
+      val items = scope.locator(".ant-select-selection-item")
+      val n = items.count()
+      var i = 0
+      var acc = Set.empty[String]
+      while (i < n) {
+        val txt = try items.nth(i).innerText() catch { case _: Exception => "" }
+        if (txt != null && txt.trim.nonEmpty) acc += norm(txt)
+        i += 1
+      }
+      acc
+    }
+
+    var selected = selectedNow
+    val missing1 = clean.filterNot(v => selected.contains(norm(v)))
+    if (missing1.nonEmpty) {
+      missing1.foreach { v =>
+        if (!tryFillSelect(page, field, Some(v))) return false
+        page.waitForTimeout(80)
+      }
+      selected = selectedNow
+    }
+
+    clean.forall(v => selected.contains(norm(v)))
   }
 
   // Enter given value
@@ -136,9 +211,33 @@ private[controllers] object FormHelpers {
     }.orNull
     if (checkbox == null) return false
     if (checkbox.count() == 0) return false
-    //    val isChecked = try checkbox.isChecked() catch { case _: Exception => false }
-    // if (!isChecked) Utils.clickWithCursor(page, checkbox)
     true
+  }
+
+  def trySetBoolean(page: Page, field: Locator, target: Boolean): Boolean = {
+    val scope = fieldScope(field)
+
+    val checkbox = firstVisible(scope.locator("input[type='checkbox']")).orElse {
+      firstVisible(field.locator("input[type='checkbox']"))
+    }.orNull
+    if (checkbox != null && checkbox.count() > 0) {
+      val current = try checkbox.isChecked() catch { case _: Exception => false }
+      if (current != target) Utils.clickWithCursor(page, checkbox)
+      return true
+    }
+
+    val switchControl = firstVisible(scope.locator(".ant-switch, button[role='switch']")).orElse {
+      firstVisible(field.locator(".ant-switch, button[role='switch']"))
+    }.orNull
+    if (switchControl != null && switchControl.count() > 0) {
+      val cls = try Option(switchControl.getAttribute("class")).getOrElse("") catch { case _: Exception => "" }
+      val aria = try Option(switchControl.getAttribute("aria-checked")).getOrElse("") catch { case _: Exception => "" }
+      val current = cls.contains("ant-switch-checked") || aria == "true"
+      if (current != target) Utils.clickWithCursor(page, switchControl)
+      return true
+    }
+
+    false
   }
 }
 
@@ -152,7 +251,6 @@ class LoginControllerBuilder(ctx: ControllerContext)
   extends ControllerBuilder(ctx) {
 
   def login(username: String, password: String): this.type = addStep(new ControllerStep {
-    // Add login step return this builder
     override def name = "Login"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -184,7 +282,6 @@ class LoginControllerBuilder(ctx: ControllerContext)
 
       val usernameField = page.getByTestId("login-username")
         .or(page.getByPlaceholder("Username")).first()
-
       usernameField.waitFor(
         // Wait for text box visible
         new Locator.WaitForOptions()
@@ -293,7 +390,7 @@ class NavigationControllerBuilder(ctx: ControllerContext)
         case _: Exception =>
       }
       ctx.ensureFakeCursor()
-      Utils.waitVisible(page.getByTestId("navigation-workflow-canvas")).first()
+      Utils.waitVisible(page.getByTestId("navigation-workflow-canvas").first())
     }
   })
 
@@ -355,8 +452,8 @@ class NavigationControllerBuilder(ctx: ControllerContext)
       chooser.setFiles(filePath) // hide the file selection window
 
       var retries = 0
-      while (page.locator("g.joint-cell.joint-element").count() <= beforeCount && retries < 40) {
-        page.waitForTimeout(250)
+      while (page.locator("g.joint-cell.joint-element").count() <= beforeCount && retries < 24) {
+        page.waitForTimeout(150)
         retries += 1
       } // Check import finish, # operator increase
 
@@ -364,6 +461,7 @@ class NavigationControllerBuilder(ctx: ControllerContext)
       val centerBtn = page.getByTitle("minimap-center-button")
       if (centerBtn.count() > 0) {
         Utils.clickWithCursor(page, centerBtn)
+        page.waitForTimeout(120)
       }
 
       val afterCount = page.locator("g.joint-cell.joint-element").count()
@@ -372,7 +470,7 @@ class NavigationControllerBuilder(ctx: ControllerContext)
       } else {
         println(s"[Import] Loaded ${afterCount - beforeCount} operators from ${jsonFilePath.split("/").last}")
       }
-      page.waitForTimeout(300)
+      page.waitForTimeout(100)
     }
   })
 
@@ -410,8 +508,8 @@ class OperatorControllerBuilder(ctx: ControllerContext)
   // If present → return the draggable child element; if not → return the element itself.
   // For some UI components, the drag handle isn’t the outer container, but a specific element inside.
   private def dragHandle(item: Locator): Locator = {
-    val draggable = item.locator("[draggable='true']").first()
-    if (draggable.count() > 0) draggable else item
+    val draggable = FormHelpers.firstVisible(item.locator("[draggable='true']")).orNull
+    if (draggable != null && draggable.count() > 0) draggable else item
   }
 
   def insertViaSearch(operatorName: String): this.type = addStep(new ControllerStep {
@@ -425,6 +523,17 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         .or(page.getByText("Operators", new Page.GetByTextOptions().setExact(true))).first()
       Utils.waitVisible(operatorsMenu)
       Utils.clickWithCursor(page, operatorsMenu)
+
+      val panelSearch = page.getByTestId("operator-search-input")
+        .or(page.getByPlaceholder("search operator")).first()
+      try {
+        panelSearch.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(1500))
+      } catch {
+        case _: Exception =>
+          // Some states require one more click to switch to the Operators tab.
+          Utils.clickWithCursor(page, operatorsMenu)
+          panelSearch.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(2500))
+      }
 
       val searchInput = page.getByTestId("operator-search-input")
         .or(page.getByPlaceholder("search operator")).first()
@@ -487,7 +596,14 @@ class OperatorControllerBuilder(ctx: ControllerContext)
                      operatorName: String,
                      operatorType: Option[String] = None,
                      canvasPosition: (Double, Double) = (0.06, 0.2),
-                     dragNextTo: Option[String] = None
+                     dragNextTo: Option[String] = None,
+                     yOffset: Double = -40.0,
+                     autoConnectToAnchor: Boolean = false,
+                     fromPortIndex: Int = 0,
+                     toPortIndex: Int = 0,
+                     connectAdditionalFrom: Option[String] = None,
+                     connectAdditionalFromPortIndex: Int = 0,
+                     connectAdditionalToInputIndex: Option[Int] = None
                    ): this.type = addStep(new ControllerStep {
     override def name = s"Insert '$operatorName' via Drag${dragNextTo.map(n => s" (next to $n)").getOrElse("")}"
     override def run(ctx: ControllerContext): Unit = {
@@ -500,6 +616,17 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       Utils.waitVisible(operatorsMenu)
       Utils.clickWithCursor(page, operatorsMenu)
 
+      val panelSearch = page.getByTestId("operator-search-input")
+        .or(page.getByPlaceholder("search operator")).first()
+      try {
+        panelSearch.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(1500))
+      } catch {
+        case _: Exception =>
+          // Some states require one more click to switch to the Operators tab.
+          Utils.clickWithCursor(page, operatorsMenu)
+          panelSearch.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(2500))
+      }
+
       // Locate operator from group
       val metadata = metadataFor(operatorName, operatorType)
       val groupPath = metadata.flatMap(m => groupPathByName.get(m.additionalMetadata.operatorGroupName)).getOrElse(Seq.empty)
@@ -511,8 +638,8 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         dragHandle(op)
       }.orElse {
         if (enforceHierarchy) {
-          throw new RuntimeException(
-            s"Cannot resolve visualization operator '$operatorName' from hierarchy path: ${groupPath.mkString(" -> ")}"
+          println(
+            s"[Operator] Hierarchy resolve failed for '$operatorName' at path '${groupPath.mkString(" -> ")}', fallback to search"
           )
         }
         None
@@ -527,24 +654,21 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         dragHandle(resolveOperatorSource(page, operatorName, operatorType))
       }
       operator.scrollIntoViewIfNeeded()
-      page.waitForTimeout(150)
+      page.waitForTimeout(80)
 
       // ── Prepare canvas ──
       val canvas = page.getByTestId("navigation-workflow-canvas")
         .or(page.locator("svg[joint-selector='svg'], svg#v-2")).first()
       Utils.waitVisible(canvas)
       canvas.scrollIntoViewIfNeeded()
-      page.waitForTimeout(100)
+      page.waitForTimeout(60)
 
-      // Target location based on last element
       val beforeCount = page.locator("g.joint-cell.joint-element").count()
       val beforeLinkCount = page.locator("g.joint-cell.joint-link").count()
       val canvasBox = canvas.boundingBox()
       if (canvasBox == null) throw new RuntimeException("Drag failed: missing canvas bounding box")
 
       // ── Calculate drop position ──
-      // If dragNextTo is specified, position to the right of that operator.
-      // Otherwise, use default grid layout.
       val anchorNode: Option[Locator] = dragNextTo.flatMap(findNodeByType(page, _))
 
       if (dragNextTo.isDefined && anchorNode.isEmpty) {
@@ -554,10 +678,10 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       val (tgtX, tgtY) = anchorNode.flatMap { anchor =>
         val box = Utils.cellBox(anchor)
         if (box != null) {
-          val spacing = 120.0
+          val spacing = 110.0
           Some((
             math.min(canvasBox.x + canvasBox.width - 30, box.x + box.width + spacing),
-            box.y + box.height / 2.0
+            box.y + box.height / 2.0 + yOffset
           ))
         } else None
       }.getOrElse {
@@ -580,9 +704,21 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         Utils.waitVisible(searchInput)
         Utils.clickWithCursor(page, searchInput)
         searchInput.fill("")
-        page.waitForTimeout(150)
+        page.waitForTimeout(80)
         val retryOperator = dragHandle(resolveOperatorSource(page, operatorName, operatorType))
         performDrag(page, retryOperator, tgtX, tgtY)
+      }
+      if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
+        // Last fallback: insert through search + Enter when drag source is flaky.
+        val searchInput = page.getByTestId("operator-search-input")
+          .or(page.getByPlaceholder("search operator")).first()
+        Utils.waitVisible(searchInput)
+        Utils.clickWithCursor(page, searchInput)
+        searchInput.fill("")
+        page.waitForTimeout(60)
+        searchInput.fill(operatorName)
+        page.waitForTimeout(100)
+        searchInput.press("Enter")
       }
       if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
         throw new RuntimeException(
@@ -594,7 +730,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       val centerBtn = page.getByTitle("minimap-center-button")
       if (centerBtn.count() > 0) {
         Utils.clickWithCursor(page, centerBtn)
-        page.waitForTimeout(300)
+        page.waitForTimeout(120)
       }
 
       // ── Click the new node to select it ──
@@ -604,16 +740,20 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         if (body.count() > 0) Utils.clickWithCursor(page, body) else Utils.clickWithCursor(page, newNode)
       }
 
-      // Best-effort explicit connect: anchor -> new node.
-      // This keeps behavior stable even when auto-connect does not trigger.
-      if (dragNextTo.isDefined && anchorNode.exists(_.count() > 0) && newNode.count() > 0) {
-        val connected = tryAutoConnect(page, anchorNode.get, newNode)
+      if (autoConnectToAnchor && dragNextTo.isDefined && anchorNode.exists(_.count() > 0) && newNode.count() > 0) {
+        val connected = tryAutoConnect(
+          page,
+          anchorNode.get,
+          newNode,
+          fromPortIndex = fromPortIndex,
+          toPortIndex = toPortIndex
+        )
         if (connected) {
           var retries = 0
-          while (page.locator("g.joint-cell.joint-link").count() <= beforeLinkCount && retries < 10) {
-            page.waitForTimeout(120)
-            retries += 1
-          }
+            while (page.locator("g.joint-cell.joint-link").count() <= beforeLinkCount && retries < 10) {
+              page.waitForTimeout(80)
+              retries += 1
+            }
           if (page.locator("g.joint-cell.joint-link").count() <= beforeLinkCount) {
             println(s"[Operator] Warning: explicit connect attempted but no new link was detected for '$operatorName'")
           }
@@ -622,8 +762,35 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         }
       }
 
+      if (connectAdditionalFrom.isDefined && newNode.count() > 0) {
+        val additionalFromNode = findNodeByType(page, connectAdditionalFrom.get)
+        if (additionalFromNode.isEmpty) {
+          println(s"[Operator] Warning: connectAdditionalFrom='${connectAdditionalFrom.get}' not found on canvas")
+        } else {
+          val beforeExtraLinkCount = page.locator("g.joint-cell.joint-link").count()
+          val connected = tryAutoConnect(
+            page,
+            additionalFromNode.get,
+            newNode,
+            fromPortIndex = connectAdditionalFromPortIndex,
+            toPortIndex = connectAdditionalToInputIndex.getOrElse(0)
+          )
+          if (connected) {
+            var retries = 0
+            while (page.locator("g.joint-cell.joint-link").count() <= beforeExtraLinkCount && retries < 10) {
+              page.waitForTimeout(80)
+              retries += 1
+            }
+            if (page.locator("g.joint-cell.joint-link").count() <= beforeExtraLinkCount) {
+              println(s"[Operator] Warning: additional connect attempted but no new link was detected for '$operatorName'")
+            }
+          } else {
+            println(s"[Operator] Warning: could not connect additional input for '$operatorName'")
+          }
+        }
+      }
+
       // ── Reposition only for default placement mode.
-      // In dragNextTo mode we keep a single drag operation without secondary nudge.
       if (dragNextTo.isEmpty) {
         val referenceNode = anchorNode
           .filter(_.count() > 0)
@@ -640,7 +807,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
             val currentCenterX = newBox.x + newBox.width / 2.0
             val currentCenterY = newBox.y + newBox.height / 2.0
             Utils.nudgeCell(page, newNode, targetCenterX - currentCenterX, targetCenterY - currentCenterY)
-            page.waitForTimeout(250)
+            page.waitForTimeout(120)
           }
           Utils.ensureSeparated(page, referenceNode, newNode)
         }
@@ -648,31 +815,37 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     }
   })
 
-  /** Find an existing operator node on the canvas by operator type or display name. */
   private def findNodeByType(page: Page, operatorTypeOrName: String): Option[Locator] = {
-    val normalized = operatorTypeOrName.toLowerCase.replaceAll("[^a-z0-9]", "")
+    val normalized = normalize(operatorTypeOrName)
+    val relaxed = normalized.replace("operator", "")
+
+    def matches(candidate: String): Boolean = {
+      val c = normalize(candidate)
+      c.nonEmpty && (
+        c.contains(normalized) ||
+          normalized.contains(c) ||
+          (relaxed.nonEmpty && (c.contains(relaxed) || relaxed.contains(c)))
+        )
+    }
+
     val cells = page.locator("g.joint-cell.joint-element")
     val count = cells.count()
     var i = 0
     while (i < count) {
       val cell = cells.nth(i)
-      // 1. Check data-testid attribute
       val testId = try Option(cell.getAttribute("data-testid")).getOrElse("")
       catch { case _: Exception => "" }
-      if (testId.toLowerCase.contains(normalized)) return Some(cell)
+      if (matches(testId)) return Some(cell)
 
-      // 1.5. Check model-id (workflow json operator id usually lands here)
       val modelId = try Option(cell.getAttribute("model-id")).getOrElse("")
       catch { case _: Exception => "" }
-      if (modelId.toLowerCase.contains(normalized)) return Some(cell)
+      if (matches(modelId)) return Some(cell)
 
-      // 2. Check the visible label text inside the node
       val label = cell.locator("text.operator-name, .texera-operator-label, text").first()
       val labelText = try {
         if (label.count() > 0) Option(label.innerText()).getOrElse("") else ""
       } catch { case _: Exception => "" }
-      val normalizedLabel = labelText.toLowerCase.replaceAll("[^a-z0-9]", "")
-      if (normalizedLabel.nonEmpty && (normalizedLabel.contains(normalized) || normalized.contains(normalizedLabel))) {
+      if (matches(labelText)) {
         return Some(cell)
       }
       i += 1
@@ -683,7 +856,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
   private def waitForNodeCountAtLeast(page: Page, targetCount: Int, maxRetries: Int): Boolean = {
     var retries = 0
     while (page.locator("g.joint-cell.joint-element").count() < targetCount && retries < maxRetries) {
-      page.waitForTimeout(150)
+      page.waitForTimeout(100)
       retries += 1
     }
     page.locator("g.joint-cell.joint-element").count() >= targetCount
@@ -695,63 +868,97 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     if (srcBox == null) throw new RuntimeException("Drag failed: missing source bounding box")
     val srcX = srcBox.x + srcBox.width / 2.0
     val srcY = srcBox.y + srcBox.height / 2.0
-    // Center
     page.mouse().move(srcX, srcY, new Mouse.MoveOptions().setSteps(25))
     page.mouse().down()
     page.mouse().move(targetX, targetY, new Mouse.MoveOptions().setSteps(35))
     page.mouse().up()
   }
 
-  private def tryAutoConnect(page: Page, fromNode: Locator, toNode: Locator): Boolean = {
-    def visibleCenter(locator: Locator): Option[(Double, Double)] = {
-      val candidate = firstVisible(locator).orElse(if (locator.count() > 0) Some(locator.first()) else None).orNull
-      if (candidate == null || candidate.count() == 0) return None
-      val box = candidate.boundingBox()
-      if (box == null) None else Some((box.x + box.width / 2.0, box.y + box.height / 2.0))
+  private def tryAutoConnect(
+                              page: Page,
+                              fromNode: Locator,
+                              toNode: Locator,
+                              fromPortIndex: Int = 0,
+                              toPortIndex: Int = 0
+                            ): Boolean = {
+    def collectPortCenters(node: Locator, io: String): Seq[(Option[Int], Double, Double)] = {
+      val selector =
+        if (io == "output")
+          "circle[port-group='output'], circle[port-group='out'], circle[port*='output'], .outPorts circle, circle[magnet='true'][port*='output']"
+        else
+          "circle[port-group='input'], circle[port-group='in'], circle[port*='input'], .inPorts circle, circle[magnet='true'][port*='input']"
+
+      val ports = node.locator(selector)
+      val total = ports.count()
+      var i = 0
+      val buf = scala.collection.mutable.ArrayBuffer.empty[(Option[Int], Double, Double)]
+      while (i < total) {
+        val p = ports.nth(i)
+        try {
+          if (p.isVisible()) {
+            val b = p.boundingBox()
+            if (b != null) {
+              val attr = Option(p.getAttribute("port"))
+                .orElse(Option(p.getAttribute("data-port")))
+                .getOrElse("")
+              val idx = (".*?(?:input|output)-([0-9]+).*").r
+                .findFirstMatchIn(attr)
+                .map(_.group(1).toInt)
+              buf += ((idx, b.x + b.width / 2.0, b.y + b.height / 2.0))
+            }
+          }
+        } catch {
+          case _: Exception =>
+        }
+        i += 1
+      }
+      buf.sortBy { case (idx, _, y) => (idx.getOrElse(Int.MaxValue), y) }.toSeq
     }
 
-    val fromPort = visibleCenter(
-      fromNode.locator("circle[port-group='output'], circle[port*='output'], .outPorts circle, circle[magnet='true']")
-    )
-    val toPort = visibleCenter(
-      toNode.locator("circle[port-group='input'], circle[port*='input'], .inPorts circle, circle[magnet='true']")
-    )
+    def pickCenter(ports: Seq[(Option[Int], Double, Double)], index: Int): Option[(Double, Double)] = {
+      ports.find(_._1.contains(index))
+        .orElse(ports.lift(index))
+        .map { case (_, x, y) => (x, y) }
+    }
 
-    val fallbackFrom = visibleCenter(fromNode.locator("rect.body, rect").first()).map { case (x, y) => (x + 18.0, y) }
-    val fallbackTo = visibleCenter(toNode.locator("rect.body, rect").first()).map { case (x, y) => (x - 18.0, y) }
+    val fromPort = pickCenter(collectPortCenters(fromNode, "output"), fromPortIndex)
+    val toPort = pickCenter(collectPortCenters(toNode, "input"), toPortIndex)
+    if (fromPort.isEmpty || toPort.isEmpty) return false
 
-    val src = fromPort.orElse(fallbackFrom)
-    val dst = toPort.orElse(fallbackTo)
-    if (src.isEmpty || dst.isEmpty) return false
-
-    page.mouse().move(src.get._1, src.get._2, new Mouse.MoveOptions().setSteps(12))
+    page.mouse().move(fromPort.get._1, fromPort.get._2, new Mouse.MoveOptions().setSteps(12))
     page.mouse().down()
-    page.mouse().move(dst.get._1, dst.get._2, new Mouse.MoveOptions().setSteps(20))
+    page.mouse().move(toPort.get._1, toPort.get._2, new Mouse.MoveOptions().setSteps(20))
     page.mouse().up()
-    page.waitForTimeout(180)
+    page.waitForTimeout(120)
     true
   }
 
-  private def firstVisible(locator: Locator): Option[Locator] = {
-    val count = locator.count()
-    if (count <= 0) return None
-    var i = 0
-    while (i < count) {
-      val nth = locator.nth(i)
-      try {
-        if (nth.isVisible()) return Some(nth)
-      } catch {
-        case _: Exception =>
+  def connectOperators(
+                        fromOperator: String,
+                        toOperator: String,
+                        fromPortIndex: Int = 0,
+                        toPortIndex: Int = 0
+                      ): this.type = addStep(new ControllerStep {
+    override def name = s"Connect $fromOperator:$fromPortIndex -> $toOperator:$toPortIndex"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      val fromNode = findNodeByType(page, fromOperator)
+        .getOrElse(throw new RuntimeException(s"Node not found: $fromOperator"))
+      val toNode = findNodeByType(page, toOperator)
+        .getOrElse(throw new RuntimeException(s"Node not found: $toOperator"))
+
+      if (!tryAutoConnect(page, fromNode, toNode, fromPortIndex = fromPortIndex, toPortIndex = toPortIndex)) {
+        throw new RuntimeException(
+          s"Failed to connect $fromOperator:$fromPortIndex -> $toOperator:$toPortIndex"
+        )
       }
-      i += 1
     }
-    None
-  }
+  })
 
   private def metadataFor(operatorName: String, operatorType: Option[String]) = {
     val normalizedName = normalize(operatorName)
     operatorType.filter(_.nonEmpty)
-      .flatMap(t => operatorMetadata.find(_.operatorType == t)) // Find the same name
+      .flatMap(t => operatorMetadata.find(_.operatorType == t))
       .orElse(operatorMetadata.find(m => normalize(m.additionalMetadata.userFriendlyName) == normalizedName))
   }
 
@@ -766,49 +973,22 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     }
 
     val leftPanel = page.locator("#left-container")
-    val exactLabel = firstVisible(leftPanel.getByText(operatorName, new Locator.GetByTextOptions().setExact(true)))
+    val exactLabel = FormHelpers.firstVisible(leftPanel.getByText(operatorName, new Locator.GetByTextOptions().setExact(true)))
     exactLabel.foreach { label =>
       val row = label.locator("xpath=ancestor-or-self::*[@data-testid and starts-with(@data-testid,'operator-item-')][1]").first()
       if (row.count() > 0) return dragHandle(row)
       return dragHandle(label)
     }
 
-    // If multiple matches exist, navigate by metadata group path first (e.g. Visualization -> Basic).
     resolveByGroupPath(page, operatorName, operatorType).foreach(item => return dragHandle(item))
 
-    // Keep first-match behavior, but only from visible results.
     val resultItems = page.locator("#left-container [data-testid^='operator-item-']")
-    firstVisible(resultItems).foreach(item => return dragHandle(item))
+    FormHelpers.firstVisible(resultItems).foreach(item => return dragHandle(item))
 
-    val fuzzy = firstVisible(leftPanel.locator(s".operator-label:has-text('$operatorName')"))
+    val fuzzy = FormHelpers.firstVisible(leftPanel.locator(s".operator-label:has-text('$operatorName')"))
     fuzzy.map(dragHandle).getOrElse {
       throw new RuntimeException(s"Cannot find operator source for '$operatorName' (${operatorType.getOrElse("unknown")})")
     }
-  }
-
-  private def tryInsertViaEnter(
-                                 page: Page,
-                                 searchInput: Locator,
-                                 operatorName: String,
-                                 operatorType: Option[String]
-                               ): Unit = {
-    // First try pressing Enter in search box to insert the top matched operator.
-    try {
-      Utils.clickWithCursor(page, searchInput)
-      page.waitForTimeout(100)
-      searchInput.press("Enter")
-      page.waitForTimeout(300)
-      return
-    } catch {
-      case _: Exception =>
-    }
-
-    val leftPanel = page.locator("#left-container")
-    val exact = firstVisible(leftPanel.getByText(operatorName, new Locator.GetByTextOptions().setExact(true)))
-      .getOrElse(resolveOperatorSource(page, operatorName, operatorType))
-    Utils.clickWithCursor(page, exact)
-    page.waitForTimeout(120)
-    page.keyboard().press("Enter")
   }
 
   private def resolveByGroupPath(
@@ -828,16 +1008,28 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       if (header == null || header.count() == 0) return None
 
       val panel = header.locator("xpath=ancestor::*[contains(@class,'ant-collapse-item')][1]").first()
-      val panelClass = Option(panel.getAttribute("class")).getOrElse("")
-      if (!panelClass.contains("ant-collapse-item-active")) {
-        Utils.clickWithCursor(page, header)
+      if (panel.count() > 0) {
+        val panelClass = Option(panel.getAttribute("class")).getOrElse("")
+        if (!panelClass.contains("ant-collapse-item-active")) {
+          clickGroupHeader(page, header)
+          page.waitForTimeout(220)
+          val afterClass = Option(panel.getAttribute("class")).getOrElse("")
+          if (!afterClass.contains("ant-collapse-item-active")) {
+            clickGroupHeader(page, header)
+            page.waitForTimeout(220)
+          }
+        }
+        scope = panel
+      } else {
+        // Fallback for non-collapse style groups.
+        clickGroupHeader(page, header)
         page.waitForTimeout(220)
+        scope = leftPanel
       }
-      scope = panel
     }
 
     operatorType.filter(_.nonEmpty).flatMap { t =>
-      firstVisible(scope.getByTestId(s"operator-item-$t"))
+      FormHelpers.firstVisible(scope.getByTestId(s"operator-item-$t"))
     }.foreach(item => return Some(item))
 
     val exact = scope.getByText(operatorName, new Locator.GetByTextOptions().setExact(true)).first()
@@ -849,12 +1041,15 @@ class OperatorControllerBuilder(ctx: ControllerContext)
   private def findHeaderInScope(scope: Locator, groupName: String): Option[Locator] = {
     val headers = scope.locator(".ant-collapse-header")
     val count = headers.count()
+    val target = normalize(groupName)
     var i = 0
     while (i < count) {
       val header = headers.nth(i)
+      val visible = try header.isVisible() catch { case _: Exception => false }
       val label = try Option(header.innerText()).getOrElse("").replaceAll("\\s+", " ").trim
       catch { case _: Exception => "" }
-      if (label == groupName) return Some(header)
+      val norm = normalize(label)
+      if (visible && (norm == target || norm.contains(target) || target.contains(norm))) return Some(header)
       i += 1
     }
     None
@@ -863,15 +1058,29 @@ class OperatorControllerBuilder(ctx: ControllerContext)
   private def findHeaderByDepth(root: Locator, groupName: String, depth: Int): Option[Locator] = {
     val headers = root.locator(s".operator-group[data-depth='$depth'] .ant-collapse-header")
     val count = headers.count()
+    val target = normalize(groupName)
     var i = 0
     while (i < count) {
       val header = headers.nth(i)
+      val visible = try header.isVisible() catch { case _: Exception => false }
       val label = try Option(header.innerText()).getOrElse("").replaceAll("\\s+", " ").trim
       catch { case _: Exception => "" }
-      if (label == groupName) return Some(header)
+      val norm = normalize(label)
+      if (visible && (norm == target || norm.contains(target) || target.contains(norm))) return Some(header)
       i += 1
     }
     None
+  }
+
+  private def clickGroupHeader(page: Page, header: Locator): Unit = {
+    try header.scrollIntoViewIfNeeded() catch { case _: Exception => }
+    val arrow = header.locator(".ant-collapse-arrow, i.anticon-right, i.anticon-down").first()
+    if (arrow.count() > 0) {
+      try Utils.clickWithCursor(page, arrow, steps = 10)
+      catch { case _: Exception => Utils.clickWithCursor(page, header, steps = 10) }
+    } else {
+      Utils.clickWithCursor(page, header, steps = 10)
+    }
   }
 
   private def normalize(s: String): String =
@@ -888,68 +1097,6 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     }
     walk(groups, Seq.empty)
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 4. PropertyPanelControllerBuilder
-//    new PropertyPanelControllerBuilder(ctx).resize(400).execute()
-// ═══════════════════════════════════════════════════════════════════
-
-class PropertyPanelControllerBuilder(ctx: ControllerContext)
-  extends ControllerBuilder(ctx) {
-
-  // view full property panel
-  def resize(height: Double = TestDataConfig.uiConfig.propertyPanelResizeHeight): this.type = addStep(new ControllerStep {
-    override def name = "Resize Property Panel"
-    override def run(ctx: ControllerContext): Unit = {
-      val page = ctx.page
-      val container = page.getByTestId("property-panel").first()
-      def visible(loc: Locator): Boolean = {
-        try loc.count() > 0 && loc.isVisible()
-        catch { case _: Exception => false }
-      }
-
-      if (!visible(container)) {
-        val cells = page.locator("g.joint-cell.joint-element")
-        if (cells.count() > 0) {
-          val last = cells.nth(cells.count() - 1)
-          val body = last.locator("rect.body").first()
-          if (body.count() > 0) Utils.clickWithCursor(page, body) else Utils.clickWithCursor(page, last)
-          // Select the last node to get property panel
-          page.waitForTimeout(300)
-        }
-      }
-      if (!visible(container)) return
-
-      val containerBox = container.boundingBox()
-      if (containerBox == null) return
-      val currentHeight = containerBox.height
-      val dy = math.max(-220.0, math.min(220.0, height - currentHeight))
-      if (math.abs(dy) < 12) return
-
-      // Resize via dedicated nz-resizable handles (avoid dragging the whole panel).
-      val resizeHandle =
-        container.locator(".ant-resizable-handle-bottom").first()
-          .or(container.locator(".ant-resizable-handle-bottomLeft").first())
-          .or(container.locator(".ant-resizable-handle-left").first())
-      if (resizeHandle.count() == 0) {
-        println("[PropertyPanel] Resize handle not found, skip resize")
-        return
-      }
-
-      Utils.waitVisible(resizeHandle)
-      val handleBox = resizeHandle.boundingBox()
-      if (handleBox == null) return
-      val startX = handleBox.x + handleBox.width / 2.0
-      val startY = handleBox.y + handleBox.height / 2.0
-
-      page.mouse().move(startX, startY, new Mouse.MoveOptions().setSteps(12))
-      page.mouse().down()
-      page.mouse().move(startX, startY + dy, new Mouse.MoveOptions().setSteps(22))
-      page.mouse().up()
-      page.waitForTimeout(300)
-    }
-  })
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -972,7 +1119,6 @@ class DatasetControllerBuilder(ctx: ControllerContext)
   def datasetVersion(version: String): this.type = { _versionName = version; this }
   def file(name: String): this.type = { _fileName = Some(name); this }
 
-  /** Convenience: load dataset + version from TestDataConfig by key. */
   def fromConfig(datasetKey: String): this.type = {
     val ds = TestDataConfig.datasets(datasetKey)
     _datasetName = ds.name
@@ -992,37 +1138,62 @@ class DatasetControllerBuilder(ctx: ControllerContext)
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
 
-      val selectBtn = page.getByTestId("dataset-file-selection-open").first()
+      // Local helper: returns Locator (not Option) with .first() fallback.
+      // Different contract from FormHelpers.firstVisible which returns Option[Locator].
+      def firstVisibleOrFirst(locator: Locator): Locator = {
+        FormHelpers.firstVisible(locator).getOrElse(locator.first())
+      }
+
+      val selectBtn = firstVisibleOrFirst(
+        page.locator(
+          "[data-testid='dataset-file-selection-open'], [data-testid='file-selection-open']"
+        )
+      )
       Utils.waitVisible(selectBtn)
       Utils.clickWithCursor(page, selectBtn)
 
-      val modal = page.getByTestId("dataset-file-selection-modal")
+      val modal = firstVisibleOrFirst(
+        page.locator(
+          "[data-testid='dataset-file-selection-modal'], [data-testid='file-selection-modal'], .ant-modal-wrap .ant-modal-content"
+        )
+      )
       Utils.waitVisible(modal)
 
-      val datasetSelect = modal.getByTestId("dataset-file-selection-dataset").first()
-      val datasetBox = datasetSelect.locator(".ant-select-selector").first()
+      val datasetBox = firstVisibleOrFirst(
+        modal.locator(
+          "[data-testid='dataset-file-selection-dataset'] .ant-select-selector, [data-testid='file-selection-dataset'] .ant-select-selector, .select-dataset .ant-select-selector"
+        )
+      )
+      Utils.waitVisible(datasetBox)
       Utils.clickWithCursor(page, datasetBox)
-      page.locator(".cdk-overlay-container .ant-select-dropdown").first()
+      page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
         .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
       Utils.chooseDropdownOptionByText(page, datasetName)
 
-      val versionSelect = modal.getByTestId("dataset-file-selection-version").first()
-      if (versionSelect.count() > 0) {
-        val versionBox = versionSelect.locator(".ant-select-selector").first()
+      val versionBoxCandidates = modal.locator(
+        "[data-testid='dataset-file-selection-version'] .ant-select-selector, [data-testid='file-selection-version'] .ant-select-selector, .select-version .ant-select-selector"
+      )
+      if (versionBoxCandidates.count() > 0) {
+        val versionBox = firstVisibleOrFirst(versionBoxCandidates)
+        Utils.waitVisible(versionBox)
         Utils.clickWithCursor(page, versionBox)
-        page.locator(".cdk-overlay-container .ant-select-dropdown").first()
+        page.locator(".cdk-overlay-container .ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
           .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
         Utils.chooseDropdownOptionByText(page, versionName)
       }
 
-      val fileTree = modal.getByTestId("dataset-file-selection-filetree").first()
+      val fileTree = firstVisibleOrFirst(
+        modal.locator(
+          "[data-testid='dataset-file-selection-filetree'], [data-testid='file-selection-filetree'], .ant-tree"
+        )
+      )
       Utils.waitVisible(fileTree)
       val fileNode = fileName match {
         case Some(fn) =>
           val exact = fileTree.getByText(fn, new Locator.GetByTextOptions().setExact(true)).first()
           if (exact.count() > 0) exact else fileTree.getByText(fn).first()
         case None =>
-          modal.locator("span[title*='.csv'], .ant-tree-node-content-wrapper").first()
+          firstVisibleOrFirst(fileTree.locator("span[title*='.csv'], .ant-tree-node-content-wrapper"))
       }
       if (fileNode.count() > 0) {
         Utils.waitVisible(fileNode)
@@ -1045,11 +1216,204 @@ class DatasetControllerBuilder(ctx: ControllerContext)
 class FormControllerBuilder(ctx: ControllerContext)
   extends ControllerBuilder(ctx) {
 
+  // Collect all operator schema titles keyed by normalized field key.
+  // This replaces the need for hardcoded aliases in most cases.
+  private lazy val metadataTitlesByKey: Map[String, Seq[String]] = {
+    val grouped = scala.collection.mutable.Map.empty[String, scala.collection.mutable.LinkedHashSet[String]]
+    OperatorMetadataGenerator.allOperatorMetadata.operators.foreach { metadata =>
+      val properties = metadata.jsonSchema.path("properties")
+      if (properties.isObject) {
+        properties.fields().asScala.foreach { entry =>
+          val key = normalize(entry.getKey)
+          val titleNode = entry.getValue.path("title")
+          if (!titleNode.isMissingNode && !titleNode.isNull) {
+            val title = titleNode.asText("").trim
+            if (title.nonEmpty) {
+              val acc = grouped.getOrElseUpdate(key, scala.collection.mutable.LinkedHashSet.empty[String])
+              acc += title
+            }
+          }
+        }
+      }
+    }
+    grouped.view.mapValues(_.toSeq).toMap
+  }
+
+  // Single normalize function used for both keys and labels.
+  private def normalize(s: String): String =
+    s.replaceAll("[^A-Za-z0-9]", "").toLowerCase
+
+  private def labelCandidates(fieldKey: String): Seq[String] = {
+    // Derive a human-readable label from camelCase/snake_case key
+    val pretty = fieldKey
+      .replaceAll("([a-z0-9])([A-Z])", "$1 $2")
+      .replaceAll("_", " ")
+      .trim
+      .split("\\s+")
+      .map(_.toLowerCase.capitalize)
+      .mkString(" ")
+
+    val normalized = normalize(fieldKey)
+    val metadataTitles = metadataTitlesByKey.getOrElse(normalized, Seq.empty)
+
+    // Metadata titles first (most authoritative), then pretty-printed fallback
+    (metadataTitles :+ pretty).map(_.trim).filter(_.nonEmpty).distinct
+  }
+
+  private def propertyEditorRoot(page: Page): Locator = {
+    val root = page.locator("#property-editor").first()
+    if (root.count() > 0) root else page.locator("body").first()
+  }
+
+  // Normalized comparison handles "X-Column" vs "X Column" vs "X_Column"
+  private def hasExactLabel(field: Locator, expected: String): Boolean = {
+    val labels = field.locator("label")
+    val count = labels.count()
+    val expectedNorm = normalize(expected)
+    var i = 0
+    while (i < count) {
+      val l = labels.nth(i)
+      val text = try l.innerText().trim catch { case _: Exception => "" }
+      if (normalize(text) == expectedNorm) return true
+      i += 1
+    }
+    false
+  }
+
+  private def hasEditableControl(field: Locator): Boolean =
+    field.locator("nz-select, .ant-select, input, textarea, .ant-switch, button[role='switch']").count() > 0
+
+  private def formlyDepth(field: Locator): Int =
+    field.locator("xpath=ancestor::formly-field").count()
+
+  private def resolveByLabel(root: Locator, labels: Seq[String], leafOnly: Boolean): Locator = {
+    val fields = root.locator("formly-field")
+    val total = fields.count()
+    var best: Locator = root.locator("__not_found__").first()
+    var bestDepth = -1
+    var i = 0
+    while (i < total) {
+      val candidate = fields.nth(i)
+      val visible = try candidate.isVisible() catch { case _: Exception => false }
+      val hasNested = candidate.locator("formly-field").count() > 0
+      if (visible && (!leafOnly || !hasNested) && hasEditableControl(candidate)) {
+        var matched = false
+        var j = 0
+        while (j < labels.size && !matched) {
+          if (hasExactLabel(candidate, labels(j))) matched = true
+          j += 1
+        }
+        if (matched) {
+          val d = formlyDepth(candidate)
+          if (d >= bestDepth) {
+            best = candidate
+            bestDepth = d
+          }
+        }
+      }
+      i += 1
+    }
+    best
+  }
+
+  private def resolveField(page: Page, fieldKey: String): Locator = {
+    val container = page.locator("#property-editor")
+    val root = propertyEditorRoot(page)
+    val labels = labelCandidates(fieldKey)
+
+    val byLeaf = resolveByLabel(root, labels, leafOnly = true)
+    if (byLeaf.count() > 0) return byLeaf
+
+    val byAny = resolveByLabel(root, labels, leafOnly = false)
+    if (byAny.count() > 0) return byAny
+
+    for (label <- labels) {
+      val field = container.locator(
+        s"formly-field:has(> formly-wrapper-nz-form-field):has(label:text-is('$label'))"
+      )
+      if (field.count() > 0) return field.first()
+    }
+
+    // fallback
+    page.locator(s"[data-testid^='form-field-$fieldKey']").first()
+  }
+
+  private def resolveFieldInScope(scope: Locator, fieldKey: String): Locator = {
+    val labels = labelCandidates(fieldKey)
+    val byLeaf = resolveByLabel(scope, labels, leafOnly = true)
+    if (byLeaf.count() > 0) return byLeaf
+
+    val byAny = resolveByLabel(scope, labels, leafOnly = false)
+    if (byAny.count() > 0) return byAny
+
+    scope.locator(s"[data-testid^='form-field-$fieldKey']").last()
+  }
+
+  private def resolveArraySection(root: Locator, fieldKey: String): Locator = {
+    val labels = labelCandidates(fieldKey)
+    var i = 0
+    while (i < labels.size) {
+      val label = labels(i)
+      val byFormly = root.locator(s"formly-field:has(label:text-is('$label'))").last()
+      if (byFormly.count() > 0) return byFormly
+
+      val byText = root.getByText(label, new Locator.GetByTextOptions().setExact(false)).first()
+      if (byText.count() > 0) {
+        val section = byText.locator("xpath=ancestor::*[self::formly-field or self::div][1]").first()
+        if (section.count() > 0) return section
+      }
+      i += 1
+    }
+    root
+  }
+
+  private def resolveArrayAddButton(section: Locator, root: Locator): Locator = {
+    val inSection = section.locator(
+      "button:has(i.anticon-plus), button.ant-btn-circle, .ant-btn:has-text('Add')"
+    ).last()
+    if (inSection.count() > 0) return inSection
+    root.locator(
+      "button:has(i.anticon-plus), button.ant-btn-circle, .ant-btn:has-text('Add')"
+    ).last()
+  }
+
+  private def fillArrayItemsNow(
+    page: Page,
+    fieldKey: String,
+    items: Seq[Map[String, String]]
+  ): Unit = {
+    val root = propertyEditorRoot(page)
+    val section = resolveArraySection(root, fieldKey)
+
+    items.foreach { itemValues =>
+      val addBtn = resolveArrayAddButton(section, root)
+      if (addBtn.count() == 0) {
+        throw new RuntimeException(s"Add button not found for array field: $fieldKey")
+      }
+      Utils.clickWithCursor(page, addBtn)
+      page.waitForTimeout(220)
+
+      itemValues.foreach { case (subKey, value) =>
+        val field = resolveFieldInScope(section, subKey)
+        if (field.count() == 0) {
+          println(s"  Sub-field not found: $subKey")
+        } else if (
+          !FormHelpers.tryFillSelect(page, field, Some(value)) &&
+          !FormHelpers.tryFillText(page, field, value)
+        ) {
+          println(s"  No supported input for sub-field: $subKey")
+        }
+        page.waitForTimeout(120)
+      }
+    }
+  }
+
   def fillField(fieldName: String, value: String): this.type = addStep(new ControllerStep {
     override def name = s"Fill Field '$fieldName'"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
-      if (FormHelpers.tryFillFieldContainer(page, page.getByTestId(s"form-field-$fieldName"), value)) return
+      val fieldByKey = resolveField(page, fieldName)
+      if (fieldByKey.count() > 0 && FormHelpers.tryFillFieldContainer(page, fieldByKey, value)) return
 
       val label = page.getByText(fieldName, new Page.GetByTextOptions().setExact(true)).first()
       Utils.waitVisible(label)
@@ -1065,17 +1429,82 @@ class FormControllerBuilder(ctx: ControllerContext)
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       values.foreach { case (fieldKey, value) =>
-        val field = page.getByTestId(s"form-field-$fieldKey").first()
+        val field = resolveField(page, fieldKey)
         if (field.count() == 0) {
           println(s"  Field not found: $fieldKey")
         } else {
-          FormHelpers.focusField(page, field)
           if (!FormHelpers.tryFillSelect(page, field, Some(value)) &&
-          !FormHelpers.tryFillText(page, field, value)) {
+            !FormHelpers.tryFillText(page, field, value)) {
             println(s"  No supported input for field: $fieldKey")
           }
         }
       }
+    }
+  })
+
+  def fillFieldJsonValues(values: Map[String, JsonNode]): this.type = addStep(new ControllerStep {
+    override def name = s"Fill ${values.size} Field Values (JSON)"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      values.foreach { case (fieldKey, node) =>
+        val field = resolveField(page, fieldKey)
+
+        val actualLabel = field.locator("label").first()
+        val labelText = if (actualLabel.count() > 0) actualLabel.innerText().trim() else "NO LABEL"
+        println(s"  [DEBUG] key='$fieldKey' → resolved label='$labelText' found=${field.count() > 0}")
+
+        if (field.count() == 0) {
+          println(s"  Field not found: $fieldKey")
+        } else if (node == null || node.isNull) {
+          // skip null
+        } else if (node.isBoolean) {
+          val target = node.asBoolean()
+          if (target) {
+            if (!FormHelpers.trySetBoolean(page, field, target = true)) {
+              println(s"  No supported boolean input for field: $fieldKey")
+            }
+          } else {
+            // keep default false to avoid unnecessary toggle for demos
+          }
+        } else if (node.isTextual || node.isNumber) {
+          val value = node.asText()
+          if (!FormHelpers.tryFillSelect(page, field, Some(value)) &&
+            !FormHelpers.tryFillText(page, field, value)) {
+            println(s"  No supported input for field: $fieldKey")
+          }
+        } else if (node.isArray) {
+          val elements = node.elements().asScala.toSeq.filter(n => n != null && !n.isNull)
+          val allObjects = elements.nonEmpty && elements.forall(_.isObject)
+          if (allObjects) {
+            val rows = elements.map { row =>
+              row.fields().asScala
+                .filter(e => e.getValue != null && !e.getValue.isNull)
+                .map(e => e.getKey -> e.getValue.asText())
+                .toMap
+            }
+            fillArrayItemsNow(page, fieldKey, rows)
+          } else {
+            val values = elements
+              .filter(n => n.isTextual || n.isNumber)
+              .map(_.asText())
+            if (!FormHelpers.tryFillSelectMany(page, field, values)) {
+              println(s"  No supported array-select input for field: $fieldKey")
+            }
+          }
+        } else {
+          println(s"  Skip unsupported JSON type for field: $fieldKey")
+        }
+      }
+    }
+  })
+
+  def fillArrayItems(
+    fieldKey: String,
+    items: Seq[Map[String, String]]
+  ): this.type = addStep(new ControllerStep {
+    override def name = s"Fill ${items.size} items in '$fieldKey'"
+    override def run(ctx: ControllerContext): Unit = {
+      fillArrayItemsNow(ctx.page, fieldKey, items)
     }
   })
 
@@ -1089,7 +1518,6 @@ class FormControllerBuilder(ctx: ControllerContext)
       for (i <- 0 until limit) {
         val field = fields.nth(i)
         if (FormHelpers.isFieldRequired(field)) {
-          // Select, first option; text, "text"; checkbox, true
           if (!FormHelpers.tryFillSelect(page, field) &&
             !FormHelpers.tryFillText(page, field, defaultText) &&
             !FormHelpers.tryCheckCheckbox(page, field)) {
@@ -1105,20 +1533,253 @@ class FormControllerBuilder(ctx: ControllerContext)
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       fieldKeys.foreach { key =>
-        val field = page.getByTestId(s"form-field-$key").first()
+        val field = resolveField(page, key)
         if (field.count() == 0) {
           println(s"  Field not found: $key")
         } else if (!FormHelpers.isFieldRequired(field) && FormHelpers.isBooleanLikeField(field)) {
           println(s"  Skip optional boolean field: $key")
         } else {
-          FormHelpers.focusField(page, field)
           if (!FormHelpers.tryFillSelect(page, field) &&
-          !FormHelpers.tryFillText(page, field, defaultText) &&
-          !FormHelpers.tryCheckCheckbox(page, field)) {
+            !FormHelpers.tryFillText(page, field, defaultText) &&
+            !FormHelpers.tryCheckCheckbox(page, field)) {
             println(s"  No supported input for field: $key")
           }
         }
       }
+    }
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. ExecutionControllerBuilder
+//    new ExecutionControllerBuilder(ctx)
+//      .runWorkflowAndWait()
+//      .openResultPanel()
+//      .execute()
+// ═══════════════════════════════════════════════════════════════════
+
+class ExecutionControllerBuilder(ctx: ControllerContext)
+  extends ControllerBuilder(ctx) {
+
+  private def runButton(page: Page): Locator =
+    page.locator("#run-button").first()
+
+  private def buttonText(button: Locator): String = {
+    try Option(button.innerText()).getOrElse("").replaceAll("\\s+", " ").trim
+    catch { case _: Exception => "" }
+  }
+
+  private def isDisabled(button: Locator): Boolean = {
+    val disabledAttr = try Option(button.getAttribute("disabled")).getOrElse("") catch { case _: Exception => "" }
+    val cls = try Option(button.getAttribute("class")).getOrElse("") catch { case _: Exception => "" }
+    disabledAttr.nonEmpty || cls.contains("ant-btn-disabled")
+  }
+
+  private def createOrSelectComputingUnit(page: Page, timeoutMs: Int): Boolean = {
+    val dropdownBtn = page.locator(".computing-units-dropdown-button").first()
+    if (dropdownBtn.count() == 0) return false
+    Utils.waitVisible(dropdownBtn)
+    Utils.clickWithCursor(page, dropdownBtn)
+
+    val dropdown = page.locator(".computing-units-dropdown").first()
+    dropdown.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(5000))
+
+    val existing = dropdown.locator("#computing-unit-option:not(.ant-dropdown-menu-item-disabled)").first()
+    if (existing.count() > 0) {
+      Utils.clickWithCursor(page, existing)
+      page.waitForTimeout(500)
+      return true
+    }
+
+    val createEntry = dropdown.locator(".create-computing-unit").first()
+    if (createEntry.count() == 0) return false
+    Utils.clickWithCursor(page, createEntry)
+
+    val modal = page.locator(".ant-modal-wrap .ant-modal-content").last()
+    modal.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(8000))
+
+    val typeSelector = modal.locator(".type-selection .ant-select-selector").first()
+    if (typeSelector.count() > 0) {
+      Utils.clickWithCursor(page, typeSelector)
+      Utils.chooseDropdownOptionByText(page, "Local")
+      page.waitForTimeout(150)
+    }
+
+    val nameInput = modal.locator(".unit-name-input").first()
+    if (nameInput.count() > 0) {
+      val current = try nameInput.inputValue() catch { case _: Exception => "" }
+      if (current.trim.isEmpty) nameInput.fill("My Computing Unit")
+    }
+
+    val uriInput = modal.locator(".unit-uri-input").first()
+    if (uriInput.count() > 0) {
+      val current = try uriInput.inputValue() catch { case _: Exception => "" }
+      if (current.trim.isEmpty) uriInput.fill(s"${TestDataConfig.baseUrl}/wsapi")
+    }
+
+    val createBtn = modal.locator("button.ant-btn-primary").filter(new Locator.FilterOptions().setHasText("Create")).first()
+    Utils.waitVisible(createBtn)
+    Utils.clickWithCursor(page, createBtn)
+
+    val start = System.currentTimeMillis()
+    while (System.currentTimeMillis() - start < timeoutMs) {
+      val visible = try modal.isVisible() catch { case _: Exception => false }
+      if (!visible) return true
+      page.waitForTimeout(250)
+    }
+    false
+  }
+
+  private def ensureComputingUnitReadyInternal(page: Page, timeoutMs: Int): Unit = {
+    val btn = runButton(page)
+    Utils.waitVisible(btn)
+
+    val startText = buttonText(btn)
+    val startDisabled = isDisabled(btn)
+    if (!startDisabled && !startText.equalsIgnoreCase("Connect")) return
+
+    val prepared = createOrSelectComputingUnit(page, timeoutMs)
+    if (!prepared) return
+
+    val start = System.currentTimeMillis()
+    while (System.currentTimeMillis() - start < timeoutMs) {
+      val text = buttonText(btn)
+      val disabled = isDisabled(btn)
+      if (!disabled && !text.equalsIgnoreCase("Connect")) return
+      page.waitForTimeout(500)
+    }
+  }
+
+  def ensureComputingUnitReady(timeoutMs: Int = 90000): this.type = addStep(new ControllerStep {
+    override def name = "Ensure Computing Unit Ready"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      ctx.ensureFakeCursor()
+      ensureComputingUnitReadyInternal(page, timeoutMs)
+    }
+  })
+
+  def runWorkflowAndWait(timeoutMs: Int = 120000): this.type = addStep(new ControllerStep {
+    override def name = "Run Workflow And Wait"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      ctx.ensureFakeCursor()
+
+      val btn = runButton(page)
+      Utils.waitVisible(btn)
+
+      def waitUntilEnabled(maxWaitMs: Int): Boolean = {
+        val start = System.currentTimeMillis()
+        while (System.currentTimeMillis() - start < maxWaitMs) {
+          if (!isDisabled(btn)) return true
+          page.waitForTimeout(250)
+        }
+        !isDisabled(btn)
+      }
+
+      var initial = buttonText(btn)
+      if (isDisabled(btn)) {
+        if (initial.equalsIgnoreCase("Connect")) {
+          ensureComputingUnitReadyInternal(page, timeoutMs = 90000)
+          initial = buttonText(btn)
+          if (!waitUntilEnabled(6000)) {
+            println(s"[Execution] Skip run: run button stays disabled in '$initial' state.")
+            return
+          }
+          initial = buttonText(btn)
+        } else if (!waitUntilEnabled(8000)) {
+          throw new RuntimeException(s"Run button is disabled. Current text: '$initial'")
+        }
+      }
+
+      if (initial.equalsIgnoreCase("Connect")) {
+        if (!isDisabled(btn)) {
+          Utils.clickWithCursor(page, btn)
+          page.waitForTimeout(700)
+        }
+      }
+
+      val beforeRun = buttonText(btn)
+      if (beforeRun.equalsIgnoreCase("Run")) {
+        if (isDisabled(btn)) {
+          println("[Execution] Skip run: 'Run' is visible but disabled.")
+          return
+        }
+        Utils.clickWithCursor(page, btn)
+      } else if (beforeRun.equalsIgnoreCase("Connect")) {
+        println("[Execution] Skip run: still in 'Connect' state after connect attempt.")
+        return
+      }
+
+      val start = System.currentTimeMillis()
+      var seenTransition = false
+      while (System.currentTimeMillis() - start < timeoutMs) {
+        val text = buttonText(btn)
+        val t = text.toLowerCase
+        if (text.nonEmpty && text != initial) {
+          seenTransition = true
+        }
+
+        if (seenTransition && t == "run") {
+          page.waitForTimeout(300)
+          return
+        }
+
+        if (!seenTransition && t == "run" && System.currentTimeMillis() - start > 5000) {
+          return
+        }
+
+        page.waitForTimeout(400)
+      }
+
+      throw new RuntimeException(s"Workflow execution did not finish within ${timeoutMs}ms. Run button text='${buttonText(btn)}'")
+    }
+  })
+
+  def openResultPanel(timeoutMs: Int = 15000): this.type = addStep(new ControllerStep {
+    override def name = "Open Result Panel"
+    override def run(ctx: ControllerContext): Unit = {
+      val page = ctx.page
+      ctx.ensureFakeCursor()
+
+      val title = page.locator("#result-container #title").first()
+      def titleVisible: Boolean = {
+        if (title.count() == 0) false
+        else {
+          try title.isVisible()
+          catch { case _: Exception => false }
+        }
+      }
+      if (title.count() > 0) {
+        val visible = titleVisible
+        if (visible) return
+      }
+
+      val viewResultBtn = page.getByTitle("view result")
+        .or(page.getByTitle("click to remove view result")).first()
+      if (viewResultBtn.count() > 0 && !isDisabled(viewResultBtn)) {
+        Utils.clickWithCursor(page, viewResultBtn)
+      }
+
+      var retries = 0
+      while (retries < 20 && !titleVisible) {
+        page.waitForTimeout(250)
+        retries += 1
+      }
+
+      if (!titleVisible) {
+        val openResultBtn = page.locator("#result-buttons li[nz-menu-item]").first()
+        if (openResultBtn.count() > 0) {
+          Utils.clickWithCursor(page, openResultBtn)
+        }
+      }
+
+      val start = System.currentTimeMillis()
+      while (System.currentTimeMillis() - start < timeoutMs) {
+        if (titleVisible) return
+        page.waitForTimeout(200)
+      }
+      throw new RuntimeException("Result panel did not open in time.")
     }
   })
 }

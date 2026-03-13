@@ -34,14 +34,15 @@ object OperatorScriptGenerator {
     "docs", "src", "main", "scala", "org", "apache", "texera", "docs", "scripts", "operators"
   )
 
-  private val visualizationGroups: Set[String] = Set(
-    OperatorGroupConstants.VISUALIZATION_GROUP,
-    OperatorGroupConstants.VISUALIZATION_BASIC_GROUP,
-    OperatorGroupConstants.VISUALIZATION_STATISTICAL_GROUP,
-    OperatorGroupConstants.VISUALIZATION_SCIENTIFIC_GROUP,
-    OperatorGroupConstants.VISUALIZATION_FINANCIAL_GROUP,
-    OperatorGroupConstants.VISUALIZATION_MEDIA_GROUP,
-    OperatorGroupConstants.VISUALIZATION_ADVANCED_GROUP
+  private lazy val groupPathByName: Map[String, Seq[String]] =
+    buildGroupPathMap(OperatorGroupConstants.OperatorGroupOrderList)
+
+  private val datasetSelectionOperatorTypes: Set[String] = Set(
+    "ArrowSource",
+    "CSVFileScan",
+    "CSVOldFileScan",
+    "FileScan",
+    "JSONLFileScan"
   )
 
   def main(args: Array[String]): Unit = {
@@ -50,11 +51,9 @@ object OperatorScriptGenerator {
     val ops = OperatorMetadataGenerator.allOperatorMetadata.operators
       .sortBy(_.additionalMetadata.userFriendlyName)
 
-    val groupPaths = buildGroupPathMap(OperatorGroupConstants.OperatorGroupOrderList)
-
     ops.foreach { m =>
       val fileName = s"${classNameFor(m)}.scala" // "BarChartScript.scala"
-      val groupPath = groupPaths.getOrElse(m.additionalMetadata.operatorGroupName, Seq(m.additionalMetadata.operatorGroupName))
+      val groupPath = groupPathByName.getOrElse(m.additionalMetadata.operatorGroupName, Seq(m.additionalMetadata.operatorGroupName))
       val targetDir = groupPath.foldLeft(outputDir) { case (dir, segment) =>
         dir.resolve(sanitizePath(segment))
       } // operators/Visualization/Basic/BarChartScript.scala
@@ -74,17 +73,55 @@ object OperatorScriptGenerator {
     val operatorName = escape(m.additionalMetadata.userFriendlyName) // "Bar Chart"
     val operatorType = escape(m.operatorType) // "BarChart"
     val category = escape(m.additionalMetadata.operatorGroupName) // "Visualization Basic"
-    val workflowKey = if (visualizationGroups.contains(m.additionalMetadata.operatorGroupName)) "Workflow10" else "WorkflowA"
-    val outputFileName = s"${slugify(m.additionalMetadata.userFriendlyName)}_demo.webm" // "bar-chart_demo.webm"
 
-    val isVisualization = visualizationGroups.contains(m.additionalMetadata.operatorGroupName)
+    val groupPath = groupPathByName.getOrElse(m.additionalMetadata.operatorGroupName, Seq.empty)
+    val isVisualization = groupPath.contains(OperatorGroupConstants.VISUALIZATION_GROUP)
+    val isML = groupPath.contains(OperatorGroupConstants.MACHINE_LEARNING_GROUP)
+    val isDataInput = groupPath.contains(OperatorGroupConstants.INPUT_GROUP)
+    val isDataCleaning = groupPath.contains(OperatorGroupConstants.CLEANING_GROUP)
+    val needsDatasetSelection = isDataInput && datasetSelectionOperatorTypes.contains(m.operatorType)
+
+    val workflowKey =
+      if (isVisualization) "Workflow10"
+      else if (isML) "WorkflowB"
+      else if (isDataCleaning) "WorkflowA"
+      else "WorkflowA"
+    val outputFileName = s"${slugify(m.additionalMetadata.userFriendlyName)}_demo.webm" // "bar-chart_demo.webm"
 
     val autoFillKeys = if (isVisualization) OperatorFieldPlanner.requiredAutofillKeys(m) else Seq.empty
 
     val autoFillLiteral =
       if (autoFillKeys.nonEmpty) autoFillKeys.map(k => s""""$k"""").mkString("Seq(", ", ", ")")
       else "Seq.empty[String]"
-    val dragNextToArg = if (isVisualization) ", dragNextTo = Some(\"CSVFileScan-operator-\")" else ""
+    val hasMultipleInputs = m.additionalMetadata.inputPorts.size >= 2
+    val dragNextToArg =
+      if (isVisualization || isDataCleaning) {
+        ", dragNextTo = Some(\"CSVFileScan-operator-\")"
+      } else if (isML && hasMultipleInputs) {
+        ", dragNextTo = Some(\"Split-operator-\"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some(\"Projection-operator-\"), connectAdditionalFromPortIndex = 0, connectAdditionalToInputIndex = Some(1)"
+      } else if (isML) {
+        ", dragNextTo = Some(\"Split-operator-\"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0"
+      } else if (isDataInput) {
+        ", canvasPosition = (0.20, 0.30)"
+      } else ""
+    val workflowJsonDirRef =
+      if (isML) "TestDataConfig.workflowJsonDir_ML"
+      else "TestDataConfig.workflowJsonDir"
+
+    val navigationBootstrap =
+      if (isVisualization || isDataCleaning || isML) {
+        s"""    new NavigationControllerBuilder(ctx)
+           |      .openWorkflow(workflow.id, workflow.name)
+           |      .importWorkflow($workflowJsonDirRef)
+           |      .execute()
+           |""".stripMargin
+      } else {
+        """    new NavigationControllerBuilder(ctx)
+          |      .openWorkflow(workflow.id, workflow.name)
+          |      .cleanWorkflow()
+          |      .execute()
+          |""".stripMargin
+      }
 
     val executeBody =
       s"""    val workflow = TestDataConfig.workflows.getOrElse(
@@ -92,31 +129,44 @@ object OperatorScriptGenerator {
          |      throw new IllegalArgumentException(s"Workflow key not found in TestDataConfig: $$workflowKey")
          |    )
          |
-         |    new NavigationControllerBuilder(ctx)
-         |      .openWorkflow(workflow.id, workflow.name)
-         |      .importWorkflow(TestDataConfig.workflowJsonDir)
-         |      .execute()
+         |$navigationBootstrap
          |
          |    new OperatorControllerBuilder(ctx)
          |      .insertViaDrag(operatorName, operatorType = Some(operatorType)$dragNextToArg)
          |      .execute()
          |
-         |    new PropertyPanelControllerBuilder(ctx)
-         |      .resize()
-         |      .execute()
-         |
-         |    if ($autoFillLiteral.nonEmpty) {
+         |${if (needsDatasetSelection)
+               """    val dataset = TestDataConfig.datasets("test1")
+                 |    val datasetBuilder = new DatasetControllerBuilder(ctx)
+                 |      .datasetName(dataset.name)
+                 |      .datasetVersion(dataset.version)
+                 |    dataset.files.headOption.foreach(datasetBuilder.file)
+                 |    datasetBuilder.execute()
+                 |
+                 |""".stripMargin
+             else ""}
+         |    val configured = OperatorFieldValues.typedValues(operatorType)
+         |    if (configured.nonEmpty) {
+         |      new FormControllerBuilder(ctx)
+         |        .fillFieldJsonValues(configured)
+         |        .execute()
+         |    } else if ($autoFillLiteral.nonEmpty) {
          |      new FormControllerBuilder(ctx)
          |        .autoFillFields($autoFillLiteral)
          |        .execute()
          |    }
+         |
+         |    new ExecutionControllerBuilder(ctx)
+         |      .runWorkflowAndWait()
+         |      .openResultPanel()
+         |      .execute()
          |""".stripMargin
 
     s"""package org.apache.texera.docs.scripts.operators
        |
        |import org.apache.texera.docs.config.TestDataConfig
        |import org.apache.texera.docs.controllers._
-       |import org.apache.texera.docs.scripts.OperatorScript
+       |import org.apache.texera.docs.scripts.{OperatorFieldValues, OperatorScript}
        |
        |object $className extends OperatorScript {
        |  override val operatorName: String = "$operatorName"
