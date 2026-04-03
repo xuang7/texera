@@ -31,7 +31,7 @@ import org.apache.texera.amber.operator.metadata.{OperatorGroupConstants, Operat
 import org.apache.texera.amber.pybuilder.PythonTemplateBuilder
 class FigureFactoryTableOpDesc extends PythonOperatorDescriptor {
 
-  @JsonProperty(required = false)
+  @JsonProperty(required = false, defaultValue = "12")
   @JsonSchemaTitle("Font Size")
   @JsonPropertyDescription("Font size of the Figure Factory Table")
   var fontSize: Double = 12
@@ -41,7 +41,7 @@ class FigureFactoryTableOpDesc extends PythonOperatorDescriptor {
   @JsonPropertyDescription("Font color of the Figure Factory Table")
   var fontColor: EncodableString = "#000000"
 
-  @JsonProperty(required = false)
+  @JsonProperty(required = false, defaultValue = "30")
   @JsonSchemaTitle("Row Height")
   @JsonPropertyDescription("Row height of the Figure Factory Table")
   var rowHeight: Double = 30
