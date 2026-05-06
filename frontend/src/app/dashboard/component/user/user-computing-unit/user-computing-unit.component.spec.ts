@@ -17,10 +17,13 @@
  * under the License.
  */
 
+import { NO_ERRORS_SCHEMA } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { UserComputingUnitComponent } from "./user-computing-unit.component";
 import { NzCardModule } from "ng-zorro-antd/card";
+import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzModalService } from "ng-zorro-antd/modal";
+import { FileAddOutline } from "@ant-design/icons-angular/icons";
 import { HttpClient } from "@angular/common/http";
 import { UserService } from "../../../../common/service/user/user.service";
 import { StubUserService } from "../../../../common/service/user/stub-user.service";
@@ -28,22 +31,25 @@ import { commonTestProviders } from "../../../../common/testing/test-utils";
 import { WorkflowComputingUnitManagingService } from "../../../../common/service/computing-unit/workflow-computing-unit/workflow-computing-unit-managing.service";
 import { ComputingUnitStatusService } from "../../../../common/service/computing-unit/computing-unit-status/computing-unit-status.service";
 import { MockComputingUnitStatusService } from "../../../../common/service/computing-unit/computing-unit-status/mock-computing-unit-status.service";
-
+import { of } from "rxjs";
 describe("UserComputingUnitComponent", () => {
   let component: UserComputingUnitComponent;
   let fixture: ComponentFixture<UserComputingUnitComponent>;
-  let mockComputingUnitService: jasmine.SpyObj<WorkflowComputingUnitManagingService>;
+  let mockComputingUnitService: any;
 
   beforeEach(async () => {
-    mockComputingUnitService = jasmine.createSpyObj<WorkflowComputingUnitManagingService>([
-      "getComputingUnitTypes",
-      "getComputingUnitLimitOptions",
-      "createKubernetesBasedComputingUnit",
-      "createLocalComputingUnit",
-    ]);
+    mockComputingUnitService = {
+      getComputingUnitTypes: vi.fn(),
+      getComputingUnitLimitOptions: vi.fn(),
+      createKubernetesBasedComputingUnit: vi.fn(),
+      createLocalComputingUnit: vi.fn(),
+    } as any;
+    mockComputingUnitService.getComputingUnitTypes.mockReturnValue(of({ typeOptions: [] }));
+    mockComputingUnitService.getComputingUnitLimitOptions.mockReturnValue(
+      of({ cpuLimitOptions: [], memoryLimitOptions: [], gpuLimitOptions: [] })
+    );
 
     await TestBed.configureTestingModule({
-      declarations: [UserComputingUnitComponent],
       providers: [
         NzModalService,
         HttpClient,
@@ -52,7 +58,8 @@ describe("UserComputingUnitComponent", () => {
         { provide: ComputingUnitStatusService, useClass: MockComputingUnitStatusService },
         ...commonTestProviders,
       ],
-      imports: [NzCardModule],
+      imports: [UserComputingUnitComponent, NzCardModule, NzIconModule.forChild([FileAddOutline])],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(UserComputingUnitComponent);
@@ -60,6 +67,7 @@ describe("UserComputingUnitComponent", () => {
   });
 
   it("should create", () => {
+    fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 });

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { CUSTOM_ELEMENTS_SCHEMA } from "@angular/core";
 import { ComponentFixture, fakeAsync, TestBed, tick } from "@angular/core/testing";
 import { CodeDebuggerComponent } from "./code-debugger.component";
 import { WorkflowStatusService } from "../../service/workflow-status/workflow-status.service";
@@ -25,15 +26,13 @@ import { Subject } from "rxjs";
 import * as Y from "yjs";
 import { BreakpointInfo } from "../../types/workflow-common.interface";
 import { OperatorState, OperatorStatistics } from "../../types/execute-workflow.interface";
-import * as monaco from "monaco-editor";
 import { commonTestProviders } from "../../../common/testing/test-utils";
-
 describe("CodeDebuggerComponent", () => {
   let component: CodeDebuggerComponent;
   let fixture: ComponentFixture<CodeDebuggerComponent>;
 
-  let mockWorkflowStatusService: jasmine.SpyObj<WorkflowStatusService>;
-  let mockUdfDebugService: jasmine.SpyObj<UdfDebugService>;
+  let mockWorkflowStatusService: any;
+  let mockUdfDebugService: any;
 
   let statusUpdateStream: Subject<Record<string, OperatorStatistics>>;
   let debugState: Y.Map<BreakpointInfo>;
@@ -45,14 +44,15 @@ describe("CodeDebuggerComponent", () => {
     statusUpdateStream = new Subject<Record<string, OperatorStatistics>>();
     debugState = new Y.Map<BreakpointInfo>();
 
-    mockWorkflowStatusService = jasmine.createSpyObj("WorkflowStatusService", ["getStatusUpdateStream"]);
-    mockWorkflowStatusService.getStatusUpdateStream.and.returnValue(statusUpdateStream.asObservable());
+    mockWorkflowStatusService = { getStatusUpdateStream: vi.fn() };
+    mockWorkflowStatusService.getStatusUpdateStream.mockReturnValue(statusUpdateStream.asObservable());
 
-    mockUdfDebugService = jasmine.createSpyObj("UdfDebugService", ["getDebugState", "doModifyBreakpoint"]);
-    mockUdfDebugService.getDebugState.and.returnValue(debugState);
+    mockUdfDebugService = { getDebugState: vi.fn(), doModifyBreakpoint: vi.fn() };
+    mockUdfDebugService.getDebugState.mockReturnValue(debugState);
 
     await TestBed.configureTestingModule({
       declarations: [CodeDebuggerComponent],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
       providers: [
         { provide: WorkflowStatusService, useValue: mockWorkflowStatusService },
         { provide: UdfDebugService, useValue: mockUdfDebugService },
@@ -65,18 +65,7 @@ describe("CodeDebuggerComponent", () => {
 
     // Set required input properties
     component.currentOperatorId = operatorId;
-    // Create and attach a <div> for Monaco editor
-    const editorElement = document.createElement("div");
-    editorElement.id = "editor-container";
-    editorElement.style.width = "800px";
-    editorElement.style.height = "600px";
-    document.body.appendChild(editorElement); // Attach to document body
-
-    // Initialize the Monaco editor with the created element
-    component.monacoEditor = monaco.editor.create(editorElement, {
-      value: "function hello() {\n\tconsole.log(\"Hello, world!\");\n}",
-      language: "javascript",
-    });
+    component.monacoEditor = { dispose: vi.fn() } as any;
 
     // Trigger change detection to ensure view updates
     fixture.detectChanges();
@@ -85,7 +74,7 @@ describe("CodeDebuggerComponent", () => {
   afterEach(() => {
     // Clean up streams to prevent memory leaks
     statusUpdateStream.complete();
-    component.monacoEditor.dispose();
+    component.monacoEditor?.dispose();
   });
 
   it("should create the component", () => {
@@ -93,8 +82,8 @@ describe("CodeDebuggerComponent", () => {
   });
 
   it("should setup monaco breakpoint methods when state is Running", fakeAsync(() => {
-    const setupSpy = spyOn(component, "setupMonacoBreakpointMethods").and.callThrough();
-    const rerenderSpy = spyOn(component, "rerenderExistingBreakpoints").and.callThrough();
+    const setupSpy = vi.spyOn(component, "setupMonacoBreakpointMethods");
+    const rerenderSpy = vi.spyOn(component, "rerenderExistingBreakpoints");
 
     // Emit a Running state event
     statusUpdateStream.next({
@@ -166,7 +155,7 @@ describe("CodeDebuggerComponent", () => {
   }));
 
   it("should remove monaco breakpoint methods when state changes to Uninitialized", () => {
-    const removeSpy = spyOn(component, "removeMonacoBreakpointMethods").and.callThrough();
+    const removeSpy = vi.spyOn(component, "removeMonacoBreakpointMethods");
 
     // Emit an Uninitialized state event
     statusUpdateStream.next({
