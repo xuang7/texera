@@ -1,0 +1,95 @@
+{
+  "operators": [
+    {
+      "operatorID": "CSVFileScan-operator-left-aaaa-bbbb-cccc-ddddeeee0001",
+      "operatorType": "CSVFileScan",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "fileEncoding": "UTF_8",
+        "customDelimiter": ",",
+        "hasHeader": true,
+        "fileName": "/texera/sample-dataset/v1/movie_tree.csv"
+      },
+      "inputPorts": [],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "CSV File Scan",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    },
+    {
+      "operatorID": "Split-operator-f4ab68ac-8be5-4f9a-a7d0-ce073590a99f",
+      "operatorType": "Split",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "k": 80,
+        "random": true,
+        "seed": 1
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "",
+          "disallowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "disallowMultiInputs": false,
+          "isDynamicPort": false
+        },
+        {
+          "portID": "output-1",
+          "displayName": "",
+          "disallowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Split",
+      "dynamicInputPorts": true,
+      "dynamicOutputPorts": true
+    }
+  ],
+  "operatorPositions": {
+    "CSVFileScan-operator-left-aaaa-bbbb-cccc-ddddeeee0001": {
+      "x": 350,
+      "y": 150
+    },
+    "Split-operator-f4ab68ac-8be5-4f9a-a7d0-ce073590a99f": {
+      "x": 508,
+      "y": 150
+    }
+  },
+  "links": [
+    {
+      "linkID": "link-54ba4d20-a9ae-4656-8492-9eb33818d1e1",
+      "source": {
+        "operatorID": "CSVFileScan-operator-left-aaaa-bbbb-cccc-ddddeeee0001",
+        "portID": "output-0"
+      },
+      "target": {
+        "operatorID": "Split-operator-f4ab68ac-8be5-4f9a-a7d0-ce073590a99f",
+        "portID": "input-0"
+      }
+    }
+  ],
+  "commentBoxes": [],
+  "settings": {
+    "dataTransferBatchSize": 400,
+    "executionMode": "PIPELINED"
+  }
+}

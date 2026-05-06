@@ -8,7 +8,7 @@
         "fileEncoding": "UTF_8",
         "customDelimiter": ",",
         "hasHeader": true,
-        "fileName": "/texera/sample-dataset/v1/movies.csv"
+        "fileName": "/texera/sample-dataset/v1/movie_tree.csv"
       },
       "inputPorts": [],
       "outputPorts": [
