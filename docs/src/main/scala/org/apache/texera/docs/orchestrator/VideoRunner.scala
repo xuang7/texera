@@ -11,7 +11,6 @@ import java.nio.file.{Files, Paths}
 case class OperatorScenario(
                              operatorName: String,
                              category: String,
-                             workflowKey: String,
                              steps: Seq[ControllerStep], // [Prepare, Execute, Finish]
                              outputFileName: String
                            )

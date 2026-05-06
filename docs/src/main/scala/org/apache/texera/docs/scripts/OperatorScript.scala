@@ -24,16 +24,10 @@ import org.apache.texera.docs.controllers.ControllerContext
 trait OperatorScript {
   def operatorName: String
   def category: String
-  def workflowKey: String
   def outputFileName: String
 
   def prepare(ctx: ControllerContext): Unit
   def execute(ctx: ControllerContext): Unit
-  def finish(ctx: ControllerContext): Unit
-
-  final def run(ctx: ControllerContext): Unit = {
-    prepare(ctx)
-    execute(ctx)
-    finish(ctx)
-  }
+  // Default no-op; scripts override only if they need post-execute cleanup.
+  def finish(ctx: ControllerContext): Unit = ()
 }

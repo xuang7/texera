@@ -23,6 +23,7 @@ import org.apache.texera.amber.operator.metadata.{GroupInfo, OperatorGroupConsta
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
+import scala.jdk.CollectionConverters._
 
 /**
  * Generates per-operator script files under:
@@ -37,11 +38,15 @@ object OperatorScriptGenerator {
   private lazy val groupPathByName: Map[String, Seq[String]] =
     buildGroupPathMap(OperatorGroupConstants.OperatorGroupOrderList)
 
+  // Data Input operators that use the "Select File" modal flow (DatasetControllerBuilder).
+  // FileScan + TextInput are intentionally NOT here: their fileName / textInput fields are
+  // plain text inputs (no modal), so they're handled solely via fillFieldJsonValues from
+  // operator-field-values.json (FileScan stores a full /texera/.../path; TextInput stores
+  // raw text content).
   private val datasetSelectionOperatorTypes: Set[String] = Set(
     "ArrowSource",
     "CSVFileScan",
     "CSVOldFileScan",
-    "FileScan",
     "JSONLFileScan"
   )
 
@@ -81,86 +86,143 @@ object OperatorScriptGenerator {
     val isDataCleaning = groupPath.contains(OperatorGroupConstants.CLEANING_GROUP)
     val needsDatasetSelection = isDataInput && datasetSelectionOperatorTypes.contains(m.operatorType)
 
-    val workflowKey =
-      if (isVisualization) "Workflow10"
-      else if (isML) "WorkflowB"
-      else if (isDataCleaning) "WorkflowA"
-      else "WorkflowA"
     val outputFileName = s"${slugify(m.additionalMetadata.userFriendlyName)}_demo.webm" // "bar-chart_demo.webm"
 
-    val autoFillKeys = if (isVisualization) OperatorFieldPlanner.requiredAutofillKeys(m) else Seq.empty
+    val autoFillKeys = if (isVisualization) requiredAutofillKeys(m) else Seq.empty
 
     val autoFillLiteral =
       if (autoFillKeys.nonEmpty) autoFillKeys.map(k => s""""$k"""").mkString("Seq(", ", ", ")")
       else "Seq.empty[String]"
     val hasMultipleInputs = m.additionalMetadata.inputPorts.size >= 2
+    // True for Data Cleaning operators that declare ≥2 inputs in their OpDesc.
+    // Despite the historical workflowJsonDir_join naming, this covers BOTH:
+    //   - Relational joins: CartesianProduct, HashJoin, IntervalJoin (group "Join")
+    //   - 2-input set ops:  Intersect, Difference, SymmetricDifference (group "Set")
+    // Union has only 1 declared port (extra inputs are added dynamically) so it
+    // does NOT fall into this branch — it follows the regular 1-input path.
+    val isTwoInputCleaning = isDataCleaning && hasMultipleInputs
+
+    // ── HARDCODED REFERENCES ───────────────────────────────────────────────
+    // These string literals reference operatorID prefixes baked into the
+    // sample_*.json workflow templates. If a template is renamed or its
+    // operator IDs change, these must be updated in lockstep.
+    //
+    //   AnchorCsv    — sample.json / sample_tree.json — single CSVFileScan
+    //                  ID prefix used for visualization + non-join data cleaning ops.
+    //   AnchorSplit  — sample_ML.json — Split operator ID prefix.
+    //                  ML predictor ops drag next to it; ML 2-input ops also
+    //                  pull a second input from Split.output-1 (testing port).
+    //
+    // Join ops can't use AnchorCsv because sample_join.json contains TWO
+    // CSVFileScan nodes (left + right) — the prefix would match either.
+    // Join scripts use canvasPosition + explicit connectOperators("...-left/right", ...).
+    // ───────────────────────────────────────────────────────────────────────
+    val AnchorCsv = "CSVFileScan-operator-"
+    val AnchorSplit = "Split-operator-"
+
     val dragNextToArg =
-      if (isVisualization || isDataCleaning) {
-        ", dragNextTo = Some(\"CSVFileScan-operator-\")"
+      if (isTwoInputCleaning) {
+        // 2-input data cleaning ops (joins + set ops) use sample_join.json (CSV →
+        // Split, single source). Both Split outputs carry the SAME schema, which
+        // satisfies operators that require attribute-name + type alignment between
+        // their two inputs (HashJoin/IntervalJoin), and trivially supports the rest
+        // (CartesianProduct + Intersect/Difference/SymmetricDifference). Wiring:
+        // anchor on Split, port 0 → port 0, and additional Split.output-1 → port 1.
+        // No yOffset — drop the operator at the default position right of Split.
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
+      } else if (isVisualization || isDataCleaning) {
+        s""", dragNextTo = Some("$AnchorCsv")"""
       } else if (isML && hasMultipleInputs) {
-        ", dragNextTo = Some(\"Split-operator-\"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some(\"Projection-operator-\"), connectAdditionalFromPortIndex = 0, connectAdditionalToInputIndex = Some(1)"
+        // Train (port 0) ← Split.output-0  •  Test (port 1) ← Split.output-1
+        s""", dragNextTo = Some("$AnchorSplit"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
       } else if (isML) {
-        ", dragNextTo = Some(\"Split-operator-\"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0"
+        s""", dragNextTo = Some("$AnchorSplit"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0"""
       } else if (isDataInput) {
-        ", canvasPosition = (0.20, 0.30)"
+        ", canvasPosition = (0.30, 0.30)"
       } else ""
+    // Operators tagged "dataset": "test2" in operator-field-values.json need a workflow
+    // that loads movie_tree.csv (featured-dataset-movie-2/v2). Use sample_tree.json for those.
+    val usesTestTreeDataset = OperatorFieldValues.datasetKey(m.operatorType) == "test2"
     val workflowJsonDirRef =
-      if (isML) "TestDataConfig.workflowJsonDir_ML"
+      if (isTwoInputCleaning) "TestDataConfig.workflowJsonDir_join"
+      else if (isML) "TestDataConfig.workflowJsonDir_ML"
+      else if (usesTestTreeDataset) "TestDataConfig.workflowJsonDir_tree"
       else "TestDataConfig.workflowJsonDir"
 
-    val navigationBootstrap =
+    // Each block returns its content WITHOUT trailing newline; we join with "\n\n"
+    // to get exactly one blank line between sections. Avoids the double-blank-line
+    // and indentation-fragility bugs of the previous string-template approach.
+
+    val navigationBlock =
       if (isVisualization || isDataCleaning || isML) {
         s"""    new NavigationControllerBuilder(ctx)
-           |      .openWorkflow(workflow.id, workflow.name)
+           |      .createNewWorkflow()
            |      .importWorkflow($workflowJsonDirRef)
-           |      .execute()
-           |""".stripMargin
+           |      .execute()""".stripMargin
       } else {
         """    new NavigationControllerBuilder(ctx)
-          |      .openWorkflow(workflow.id, workflow.name)
+          |      .createNewWorkflow()
           |      .cleanWorkflow()
-          |      .execute()
-          |""".stripMargin
+          |      .execute()""".stripMargin
       }
 
-    val executeBody =
-      s"""    val workflow = TestDataConfig.workflows.getOrElse(
-         |      workflowKey,
-         |      throw new IllegalArgumentException(s"Workflow key not found in TestDataConfig: $$workflowKey")
-         |    )
-         |
-         |$navigationBootstrap
-         |
-         |    new OperatorControllerBuilder(ctx)
+    val operatorBlock =
+      s"""    new OperatorControllerBuilder(ctx)
          |      .insertViaDrag(operatorName, operatorType = Some(operatorType)$dragNextToArg)
-         |      .execute()
-         |
-         |${if (needsDatasetSelection)
-               """    val dataset = TestDataConfig.datasets("test1")
-                 |    val datasetBuilder = new DatasetControllerBuilder(ctx)
-                 |      .datasetName(dataset.name)
-                 |      .datasetVersion(dataset.version)
-                 |    dataset.files.headOption.foreach(datasetBuilder.file)
-                 |    datasetBuilder.execute()
-                 |
-                 |""".stripMargin
-             else ""}
-         |    val configured = OperatorFieldValues.typedValues(operatorType)
-         |    if (configured.nonEmpty) {
-         |      new FormControllerBuilder(ctx)
-         |        .fillFieldJsonValues(configured)
-         |        .execute()
-         |    } else if ($autoFillLiteral.nonEmpty) {
-         |      new FormControllerBuilder(ctx)
-         |        .autoFillFields($autoFillLiteral)
-         |        .execute()
-         |    }
-         |
-         |    new ExecutionControllerBuilder(ctx)
-         |      .runWorkflowAndWait()
-         |      .openResultPanel()
-         |      .execute()
-         |""".stripMargin
+         |      .execute()""".stripMargin
+
+    val datasetBlockOpt =
+      if (needsDatasetSelection)
+        // Per-op file pick: ArrowSource → movie_tree.arrow, JSONLFileScan → movie_tree.jsonl,
+        // CSVFileScan/CSVOldFileScan → movies.csv (or whatever JSON says). Fallback to
+        // dataset.files.head if operator-field-values.json has no fileName for this op.
+        Some(
+          """    val dataset = TestDataConfig.datasets("test1")
+            |    val datasetBuilder = new DatasetControllerBuilder(ctx)
+            |      .datasetName(dataset.name)
+            |      .datasetVersion(dataset.version)
+            |    OperatorFieldValues.fieldValue(operatorType, "fileName")
+            |      .orElse(dataset.files.headOption)
+            |      .foreach(datasetBuilder.file)
+            |    datasetBuilder.execute()""".stripMargin
+        )
+      else None
+
+    // Form-fill block: the autoFill `else if` is inlined here as a complete
+    // Scala statement (rather than appended via string concatenation) so the
+    // shape of the generated code is unambiguous regardless of branch state.
+    val formFillBlock =
+      if (autoFillKeys.nonEmpty)
+        s"""    val configured = OperatorFieldValues.typedValues(operatorType)
+           |    if (configured.nonEmpty) {
+           |      new FormControllerBuilder(ctx)
+           |        .fillFieldJsonValues(configured)
+           |        .execute()
+           |    } else if ($autoFillLiteral.nonEmpty) {
+           |      new FormControllerBuilder(ctx)
+           |        .autoFillFields($autoFillLiteral)
+           |        .execute()
+           |    }""".stripMargin
+      else
+        """    val configured = OperatorFieldValues.typedValues(operatorType)
+          |    if (configured.nonEmpty) {
+          |      new FormControllerBuilder(ctx)
+          |        .fillFieldJsonValues(configured)
+          |        .execute()
+          |    }""".stripMargin
+
+    val executionBlock =
+      """    new ExecutionControllerBuilder(ctx)
+        |      .enableViewResult()
+        |      .runWorkflowAndWait()
+        |      .openResultPanel()
+        |      .execute()""".stripMargin
+
+    val executeBody = (
+      Seq(navigationBlock, operatorBlock) ++
+        datasetBlockOpt.toSeq ++
+        Seq(formFillBlock, executionBlock)
+    ).mkString("\n\n") + "\n"
 
     s"""package org.apache.texera.docs.scripts.operators
        |
@@ -171,7 +233,6 @@ object OperatorScriptGenerator {
        |object $className extends OperatorScript {
        |  override val operatorName: String = "$operatorName"
        |  override val category: String = "$category"
-       |  override val workflowKey: String = "$workflowKey"
        |  override val outputFileName: String = "$outputFileName"
        |  private val operatorType: String = "$operatorType"
        |
@@ -238,6 +299,31 @@ object OperatorScriptGenerator {
 
   private def escape(value: String): String =
     value.replace("\\", "\\\\").replace("\"", "\\\"")
+
+  // Returns the union of (a) schema "required" fields and (b) properties tagged
+  // with an "autofill" annotation. Used to populate the autoFillFields(...) fallback
+  // in generated visualization scripts so the form has at least placeholder values
+  // when operator-field-values.json has no entry for the operator.
+  private def requiredAutofillKeys(m: OperatorMetadata): Seq[String] = {
+    val schema = m.jsonSchema
+
+    val required: Seq[String] = {
+      val node = schema.path("required")
+      if (!node.isArray) Seq.empty
+      else node.elements().asScala.map(_.asText("")).filter(_.nonEmpty).toSeq
+    }
+
+    val autofillTagged: Seq[String] = {
+      val properties = schema.path("properties")
+      if (!properties.isObject) Seq.empty
+      else properties.fields().asScala.flatMap { entry =>
+        val tag = entry.getValue.path("autofill").asText("").trim
+        if (tag.isEmpty) None else Some(entry.getKey)
+      }.toSeq
+    }
+
+    (required ++ autofillTagged).distinct
+  }
 
   private def buildGroupPathMap(groups: List[GroupInfo]): Map[String, Seq[String]] = {
     def walk(items: List[GroupInfo], prefix: Seq[String]): Map[String, Seq[String]] = {

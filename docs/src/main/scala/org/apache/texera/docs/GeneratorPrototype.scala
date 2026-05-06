@@ -1,10 +1,12 @@
+// prototype
+
 package org.apache.texera.docs
 
 import com.microsoft.playwright._
 import com.microsoft.playwright.options.{AriaRole, LoadState, WaitForSelectorState}
 import java.nio.file.{Files, Paths}
 
-object Generator {
+object GeneratorPrototype {
 
   /** Injects a visible “fake cursor” + click ripple into the page so recordings are easy to follow. */
   private def installFakeCursor(page: Page): Unit = {

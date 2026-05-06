@@ -25,18 +25,31 @@ object OperatorFieldValuesValidator {
   private def normalize(s: String): String =
     s.replaceAll("[^A-Za-z0-9]", "").toLowerCase
 
+  // Meta-keys in operator config that describe config metadata, not form fields.
+  private val metaKeys: Set[String] = Set("dataset")
+
   def main(args: Array[String]): Unit = {
     val root = mapper.readTree(configPath.toFile)
     val operatorsNode = root.path("operators")
-    val datasetSchemaNode = root.path("dataset").path("schema")
+    val datasetsNode = root.path("datasets")
 
-    val datasetTypes: Map[String, String] =
-      if (!datasetSchemaNode.isArray) Map.empty
-      else datasetSchemaNode.elements().asScala.flatMap { n =>
-        val name = n.path("name").asText("")
-        val tpe = n.path("type").asText("").toLowerCase
-        if (name.nonEmpty && tpe.nonEmpty) Some(name -> tpe) else None
+    // Build per-dataset Map[columnName -> type] from the new datasets {test1, test2, ...} structure.
+    val schemasByDataset: Map[String, Map[String, String]] =
+      if (!datasetsNode.isObject) Map.empty
+      else datasetsNode.fields().asScala.map { e =>
+        val key = e.getKey
+        val schemaArr = e.getValue.path("schema")
+        val cols =
+          if (!schemaArr.isArray) Map.empty[String, String]
+          else schemaArr.elements().asScala.flatMap { n =>
+            val name = n.path("name").asText("")
+            val tpe = n.path("type").asText("").toLowerCase
+            if (name.nonEmpty && tpe.nonEmpty) Some(name -> tpe) else None
+          }.toMap
+        key -> cols
       }.toMap
+
+    val defaultDataset = "test1"
 
     val metadataByType = OperatorMetadataGenerator.allOperatorMetadata.operators.map(m => m.operatorType -> m).toMap
 
@@ -55,6 +68,14 @@ object OperatorFieldValuesValidator {
       } else if (!opConfig.isObject) {
         issue(s"$opType: config is not an object")
       } else {
+        // Pick the dataset schema for this operator (default test1)
+        val datasetKey = opConfig.path("dataset").asText("")
+        val effectiveDataset = if (datasetKey.nonEmpty) datasetKey else defaultDataset
+        val datasetTypes = schemasByDataset.getOrElse(effectiveDataset, Map.empty[String, String])
+        if (!schemasByDataset.contains(effectiveDataset) && datasetKey.nonEmpty) {
+          issue(s"$opType: dataset='$datasetKey' has no schema in datasets section")
+        }
+
         val schema = meta.get.jsonSchema
         val propertiesNode = schema.path("properties")
         val requiredSet = schema.path("required").elements().asScala.map(_.asText("")).filter(_.nonEmpty).toSet
@@ -72,7 +93,7 @@ object OperatorFieldValuesValidator {
 
         val seenProps = scala.collection.mutable.Set.empty[String]
 
-        opConfig.fields().asScala.foreach { f =>
+        opConfig.fields().asScala.filterNot(f => metaKeys.contains(f.getKey)).foreach { f =>
           val configKey = f.getKey
           val valueNode = f.getValue
           val resolvedProp = keyAliasToProperty.get(normalize(configKey))
