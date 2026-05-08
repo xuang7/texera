@@ -93,6 +93,7 @@ object OperatorScriptGenerator {
     val autoFillLiteral =
       if (autoFillKeys.nonEmpty) autoFillKeys.map(k => s""""$k"""").mkString("Seq(", ", ", ")")
       else "Seq.empty[String]"
+    val hasNoInputs = m.additionalMetadata.inputPorts.isEmpty
     val hasMultipleInputs = m.additionalMetadata.inputPorts.size >= 2
     // True for Data Cleaning operators that declare ≥2 inputs in their OpDesc.
     // Despite the historical workflowJsonDir_join naming, this covers BOTH:
@@ -129,15 +130,14 @@ object OperatorScriptGenerator {
         // (CartesianProduct + Intersect/Difference/SymmetricDifference). Wiring:
         // anchor on Split, port 0 → port 0, and additional Split.output-1 → port 1.
         // No yOffset — drop the operator at the default position right of Split.
-        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
       } else if (isVisualization || isDataCleaning) {
         s""", dragNextTo = Some("$AnchorCsv")"""
       } else if (isML && hasMultipleInputs) {
-        // Train (port 0) ← Split.output-0  •  Test (port 1) ← Split.output-1
-        s""", dragNextTo = Some("$AnchorSplit"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
       } else if (isML) {
-        s""", dragNextTo = Some("$AnchorSplit"), yOffset = -110.0, autoConnectToAnchor = true, fromPortIndex = 0, toPortIndex = 0"""
-      } else if (isDataInput) {
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true"""
+      } else if (hasNoInputs) {
         ", canvasPosition = (0.30, 0.30)"
       } else ""
     // Operators tagged "dataset": "test2" in operator-field-values.json need a workflow
@@ -154,7 +154,12 @@ object OperatorScriptGenerator {
     // and indentation-fragility bugs of the previous string-template approach.
 
     val navigationBlock =
-      if (isVisualization || isDataCleaning || isML) {
+      if (hasNoInputs) {
+        """    new NavigationControllerBuilder(ctx)
+          |      .createNewWorkflow()
+          |      .cleanWorkflow()
+          |      .execute()""".stripMargin
+      } else if (isVisualization || isDataCleaning || isML) {
         s"""    new NavigationControllerBuilder(ctx)
            |      .createNewWorkflow()
            |      .importWorkflow($workflowJsonDirRef)

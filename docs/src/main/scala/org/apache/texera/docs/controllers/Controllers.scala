@@ -22,8 +22,8 @@ private[controllers] object Delays {
   //   Long    : major UI transitions, panel collapse, drag-drop release
   //   Network : post-import / post-Run / file chooser / iceberg snapshot
   val Tick: Int = 80
-  val Settle: Int = 200
-  val Long: Int = 400
+  val Settle: Int = 150
+  val Long: Int = 300
   val Network: Int = 700
 }
 
@@ -1120,7 +1120,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
           .or(page.getByPlaceholder("search operator")).first()
         Utils.waitVisible(searchInput)
         Utils.clickWithCursor(page, searchInput)
-        searchInput.fill("")
+        searchInput.fill(operatorName)
         page.waitForTimeout(Delays.Settle)
         dragHandle(resolveOperatorSource(page, operatorName, operatorType))
       }
@@ -1656,14 +1656,29 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     val headers = scope.locator(".ant-collapse-header")
     val count = headers.count()
     val target = normalize(groupName)
-    var i = 0
-    while (i < count) {
+
+    def readHeader(i: Int): (Locator, Boolean, String) = {
       val header = headers.nth(i)
       val visible = try header.isVisible() catch { case _: Exception => false }
       val label = try Option(header.innerText()).getOrElse("").replaceAll("\\s+", " ").trim
       catch { case _: Exception => "" }
-      val norm = normalize(label)
-      if (visible && (norm == target || norm.contains(target) || target.contains(norm))) return Some(header)
+      (header, visible, normalize(label))
+    }
+
+    // Pass 1: exact match — avoids matching a parent header whose name is a
+    // substring of the target (e.g. "Sklearn" when looking for "Sklearn Training").
+    var i = 0
+    while (i < count) {
+      val (header, visible, norm) = readHeader(i)
+      if (visible && norm == target) return Some(header)
+      i += 1
+    }
+
+    // Pass 2: fuzzy (substring) match as fallback.
+    i = 0
+    while (i < count) {
+      val (header, visible, norm) = readHeader(i)
+      if (visible && (norm.contains(target) || target.contains(norm))) return Some(header)
       i += 1
     }
     None

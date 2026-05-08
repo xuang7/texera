@@ -24,7 +24,7 @@ name := "docs"
 organization := "org.apache"
 version := "1.0.0"
 
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.18"
 
 //enablePlugins(JavaAppPackaging)
 
