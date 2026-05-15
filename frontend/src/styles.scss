@@ -19,6 +19,86 @@
 
 @import "@ali-hm/angular-tree-component/css/angular-tree-component.css";
 
+/* driver.js — purely cosmetic. DO NOT override z-index here; driver.js
+   uses z-index: 1000000000 by design so the spotlight always wins. */
+.driver-popover {
+  max-width: 360px;
+}
+.driver-popover-title {
+  font-weight: 600;
+}
+.driver-popover-description b {
+  color: #1890ff;
+}
+
+/* Welcome popover — a centered, fancier variant of the standard driver.js
+   popover used for the first-time greeting. Wider, with a soft gradient and
+   a primary-coloured CTA so "Start building your first workflow" reads as
+   the obvious next step. */
+.driver-popover.tutorial-welcome-popover {
+  max-width: 460px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f5ff 100%);
+  border: 2px solid #1890ff;
+  box-shadow: 0 16px 48px rgba(24, 144, 255, 0.32);
+  animation: tutorial-welcome-pop 0.5s cubic-bezier(0.18, 1.25, 0.4, 1);
+
+  .driver-popover-title {
+    font-size: 20px;
+    color: #1890ff;
+    text-align: center;
+  }
+
+  .driver-popover-footer button.driver-popover-next-btn {
+    background: #1890ff;
+    border-color: #1890ff;
+    color: #fff;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(24, 144, 255, 0.45);
+    text-shadow: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      background: #40a9ff;
+      border-color: #40a9ff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(24, 144, 255, 0.6);
+    }
+  }
+
+  .tutorial-welcome-emoji {
+    font-size: 54px;
+    margin-bottom: 8px;
+    display: inline-block;
+    animation: tutorial-welcome-wave 1.4s ease-in-out infinite;
+    transform-origin: 70% 80%;
+  }
+}
+
+@keyframes tutorial-welcome-pop {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tutorial-welcome-wave {
+  0%, 100% { transform: rotate(-14deg); }
+  50%      { transform: rotate(14deg); }
+}
+
+/* driver.js by default sets pointer-events:none on every element outside the
+   highlighted one. That breaks drag-and-drop tutorial steps (user can grab the
+   operator label but the canvas refuses the drop). Re-enable interaction
+   everywhere while the tour is active — the dim overlay still gives the visual
+   cue, but the page stays fully usable. */
+body.driver-active *:not(.driver-overlay) {
+  pointer-events: auto !important;
+}
+body.driver-active .driver-overlay {
+  pointer-events: none !important;
+}
+
 .ant-menu-item,
 .ant-menu-submenu-title,
 img {

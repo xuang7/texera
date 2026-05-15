@@ -54,13 +54,15 @@
       *ngFor="let groupname of groupNames"
       [nzHeader]="groupname.groupName"
       class="operator-group"
-      [attr.data-depth]="depth">
+      [attr.data-depth]="depth"
+      [attr.data-group-name]="groupname.groupName">
       <div class="indent">
         <ng-container
           *ngTemplateOutlet="menuTemplate; context: { $implicit: groupname.children, depth: depth + 1 }"></ng-container>
         <div
           *ngFor="let operatorSchema of opList.get(groupname.groupName)"
-          class="operator-label">
+          class="operator-label"
+          [attr.data-operator-type]="operatorSchema.operatorType">
           <texera-operator-label [operator]="operatorSchema"></texera-operator-label>
         </div>
       </div>

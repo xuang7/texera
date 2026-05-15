@@ -16,17 +16,29 @@
  specific language governing permissions and limitations
  under the License.
 -->
-<input
-  *ngIf="formControl.value || !isFileSelectionEnabled"
-  nz-input
-  required
-  [readOnly]="isFileSelectionEnabled"
-  [formControl]="formControl" />
+
+<!-- Completion toast (shown briefly after the user finishes the tour) -->
+<div
+  *ngIf="showCompletion"
+  class="tutorial-completion">
+  <span class="tutorial-completion-emoji">🎉</span>
+  <div class="tutorial-completion-text">
+    <strong>Awesome — you did it!</strong>
+    <span class="tutorial-completion-sub">You just built your first Texera workflow. Click any operator to peek at its data.</span>
+  </div>
+</div>
+
+<!-- Floating "Start Tutorial" launcher — visible whenever the tour is not running -->
 <button
-  *ngIf="isFileSelectionEnabled"
+  *ngIf="!isActive"
+  class="tutorial-start-btn"
   nz-button
-  nzSize="small"
-  data-tutorial="file-select-button"
-  (click)="isFileSelectionEnabled && onClickOpenFileSelectionModal()">
-  Select File
+  nzType="primary"
+  nz-tooltip
+  nzTooltipTitle="Take a quick guided tour — about 2 minutes ✨"
+  (click)="onRestart()">
+  <span
+    nz-icon
+    nzType="play-circle"></span>
+  Start Tutorial
 </button>

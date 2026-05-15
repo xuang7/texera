@@ -29,6 +29,7 @@
               "node_modules/jointjs/css/themes/default.css",
               "node_modules/ng-zorro-antd/ng-zorro-antd.min.css",
               "node_modules/ng-zorro-antd/resizable/style/index.min.css",
+              "node_modules/driver.js/dist/driver.css",
               "src/styles.scss"
             ],
             "scripts": ["./node_modules/marked/lib/marked.umd.js"],

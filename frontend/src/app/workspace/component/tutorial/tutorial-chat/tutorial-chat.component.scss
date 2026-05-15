@@ -1,0 +1,232 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+// Floating "Ask AI" button
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10000;
+  border-radius: 24px;
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(24, 144, 255, 0.45);
+  }
+}
+
+.chat-btn-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+// Slide-in chat panel
+.chat-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 9999;
+  width: 340px;
+  height: 460px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e8e8e8;
+
+  // Slide in from bottom-right
+  transform: translateY(30px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+
+  &.open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+// Header
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chat-header-title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.chat-header-subtitle {
+  font-size: 11px;
+  opacity: 0.8;
+  display: none;
+}
+
+.chat-close-btn {
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin-left: auto;
+
+  &:hover {
+    color: #fff !important;
+  }
+}
+
+// Message list
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f9fafb;
+}
+
+.chat-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.chat-message {
+  display: flex;
+  max-width: 90%;
+
+  &.user-message {
+    align-self: flex-end;
+
+    .message-bubble {
+      background: #1890ff;
+      color: #fff;
+      border-radius: 16px 16px 4px 16px;
+    }
+  }
+
+  &.agent-message {
+    align-self: flex-start;
+
+    .message-bubble {
+      background: #fff;
+      color: #262626;
+      border: 1px solid #e8e8e8;
+      border-radius: 16px 16px 16px 4px;
+    }
+  }
+}
+
+.message-bubble {
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.message-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.message-content {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// Typing indicator animation
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+
+  span {
+    width: 6px;
+    height: 6px;
+    background: #bfbfbf;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+}
+
+@keyframes bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-5px);
+  }
+}
+
+// Input area
+.chat-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.chat-send-btn {
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

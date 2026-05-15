@@ -61,6 +61,8 @@ import { LeftPanelComponent } from "./left-panel/left-panel.component";
 import { AgentPanelComponent } from "./agent/agent-panel/agent-panel.component";
 import { PropertyEditorComponent } from "./property-editor/property-editor.component";
 import { FormlyRepeatDndComponent } from "../../common/formly/repeat-dnd/repeat-dnd.component";
+import { TutorialPanelComponent } from "./tutorial/tutorial-panel/tutorial-panel.component";
+import { TutorialChatComponent } from "./tutorial/tutorial-chat/tutorial-chat.component";
 
 export const SAVE_DEBOUNCE_TIME_IN_MS = 5000;
 
@@ -84,6 +86,8 @@ export const SAVE_DEBOUNCE_TIME_IN_MS = 5000;
     AgentPanelComponent,
     PropertyEditorComponent,
     FormlyRepeatDndComponent,
+    TutorialPanelComponent,
+    TutorialChatComponent,
   ],
 })
 export class WorkspaceComponent implements AfterViewInit, OnInit, OnDestroy {
