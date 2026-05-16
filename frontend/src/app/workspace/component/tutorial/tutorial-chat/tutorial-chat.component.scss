@@ -17,38 +17,156 @@
  * under the License.
  */
 
-// Floating "Ask AI" button
-.chat-toggle-btn {
+// Floating Argus = the clickable agent avatar.
+//
+// Position: bottom-right (per user preference). Compact 48px disc so it
+// doesn't loom over Texera's minimap or the property editor.
+//
+// Z-index: driver.js's spotlight overlay sits at z-index ~1_000_000_000, so
+// the button has to stack above it. 1_000_000_010 keeps Argus clickable on
+// top of any tour state.
+// One-time "ask me anything" bubble next to Argus. Same z-index as the
+// button so it sits above driver.js's tour overlay. Arrow on the right
+// points at the button; clicking the bubble itself also opens the chat.
+.argus-nudge {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 10000;
-  border-radius: 24px;
-  height: 44px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  bottom: 113px;
+  right: 84px;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+  color: #0d6f8c;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  border: 1.5px solid #1aa3c4;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(20, 130, 150, 0.25);
+  cursor: pointer;
+  z-index: 1000000010;
+  animation: argus-nudge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+  transform-origin: right center;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: -9px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid #1aa3c4;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 7px solid #f0fdfa;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    z-index: 1;
+  }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(24, 144, 255, 0.45);
+    background: linear-gradient(135deg, #ffffff 0%, #e0f9f5 100%);
   }
 }
 
-.chat-btn-label {
-  font-size: 13px;
-  font-weight: 600;
+@keyframes argus-nudge-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(8px) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
-// Slide-in chat panel
+.argus-toggle-btn {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  z-index: 1000000010;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+  border: 2px solid #1aa3c4;
+  box-shadow: 0 6px 18px rgba(20, 130, 150, 0.35);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  animation: argus-toggle-pulse 2.4s ease-in-out infinite;
+
+  /* Argus inside the button is decorative. Let clicks fall through to the
+     button so the entire disc is one big click target. */
+  texera-argus {
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 10px 24px rgba(20, 130, 150, 0.5);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.97);
+  }
+}
+
+// Label removed in the new compact disc layout. Keep the rule so it doesn't
+// regress if added back inadvertently.
+.argus-toggle-label {
+  display: none;
+}
+
+@keyframes argus-toggle-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(20, 130, 150, 0.35);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(26, 163, 196, 0.6);
+  }
+}
+
+.argus-toggle-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0d6f8c;
+  letter-spacing: 0.3px;
+  padding-right: 4px;
+  white-space: nowrap;
+}
+
+.chat-header-argus {
+  flex-shrink: 0;
+  /* The header has a deep gradient background; Argus's own drop-shadow looks
+     muddy on it, so suppress the filter and let the SVG sit cleanly. */
+  filter: none !important;
+}
+
+// Slide-in chat panel — anchored above the bottom-right Argus button so it
+// expands upward.
 .chat-panel {
   position: fixed;
-  bottom: 80px;
+  bottom: 160px;
   right: 24px;
-  z-index: 9999;
+  z-index: 1000000009; // just below the Argus button so the button stays clickable on top
   width: 340px;
   height: 460px;
   background: #fff;
@@ -59,11 +177,14 @@
   overflow: hidden;
   border: 1px solid #e8e8e8;
 
-  // Slide in from bottom-right
-  transform: translateY(30px) scale(0.95);
+  // Slide up from the Argus button at bottom-right
+  transform: translateY(12px) scale(0.95);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+  transform-origin: bottom right;
 
   &.open {
     transform: translateY(0) scale(1);
@@ -72,13 +193,13 @@
   }
 }
 
-// Header
+// Header — peacock palette so Argus visually belongs.
 .chat-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #0d6f8c 0%, #1aa3c4 60%, #1ab37e 100%);
   color: #fff;
   flex-shrink: 0;
 }

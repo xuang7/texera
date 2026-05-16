@@ -359,4 +359,12 @@ describe("WorkspaceComponent", () => {
       expect(component.copilotEnabled).toBe(false);
     });
   });
+
+  describe("tutorialEnabled", () => {
+    it("passes through to GuiConfigService.env.tutorialEnabled", async () => {
+      await createFixture();
+      // MockGuiConfigService defaults `tutorialEnabled` to false.
+      expect(component.tutorialEnabled).toBe(false);
+    });
+  });
 });

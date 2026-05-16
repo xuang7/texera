@@ -326,7 +326,8 @@
           <button
             (click)="undoRedoService.undoAction()"
             [disabled]="displayParticularWorkflowVersion || !undoRedoService.canUndo()"
-            nz-button>
+            nz-button
+            title="undo">
             <i
               nz-icon
               nzType="undo"></i>
@@ -334,7 +335,8 @@
           <button
             (click)="undoRedoService.redoAction()"
             [disabled]="displayParticularWorkflowVersion || !undoRedoService.canRedo()"
-            nz-button>
+            nz-button
+            title="redo">
             <i
               nz-icon
               nzType="redo"></i>

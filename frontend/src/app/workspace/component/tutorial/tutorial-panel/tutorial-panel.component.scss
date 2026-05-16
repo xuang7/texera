@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// Completion toast — pops in after the user finishes the tour, then drifts away
+// Completion toast — pops in after the user finishes a flow, then drifts away
 .tutorial-completion {
   position: fixed;
   bottom: 110px;
@@ -61,22 +61,65 @@
 }
 
 @keyframes tutorial-pop-in {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.85); }
-  60%  { opacity: 1; transform: translateX(-50%) translateY(-4px) scale(1.04); }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1);    }
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 @keyframes tutorial-bounce {
-  0%, 100% { transform: translateY(0)    rotate(-4deg); }
-  50%      { transform: translateY(-6px) rotate(8deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(8deg);
+  }
 }
 
-// Floating "Start Tutorial" launcher — sits at the top-right while the tour is off
-.tutorial-start-btn {
+// Floating launcher cluster (top-right) — pairs the Start button with the
+// trophy-shelf shortcut so users can see their badges without re-launching.
+.tutorial-launcher-cluster {
   position: fixed;
   top: 12px;
   right: 16px;
   z-index: 10000;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tutorial-trophy-btn {
+  height: 36px;
+  width: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff9ec;
+  border: 1.5px solid #faad14;
+  color: #faad14;
+  font-size: 16px;
+  box-shadow: 0 3px 10px rgba(250, 173, 20, 0.3);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(250, 173, 20, 0.45);
+  }
+}
+
+.tutorial-start-btn {
   height: 36px;
   padding: 0 16px;
   border-radius: 20px;
@@ -96,6 +139,11 @@
 }
 
 @keyframes tutorial-btn-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(24, 144, 255, 0.4); }
-  50%      { box-shadow: 0 4px 24px rgba(24, 144, 255, 0.7); }
+  0%,
+  100% {
+    box-shadow: 0 4px 14px rgba(24, 144, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(24, 144, 255, 0.7);
+  }
 }

@@ -1,0 +1,470 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Global styles for the tutorial mode (driver.js popovers, body.driver-active
+ * overrides, sparkle-burst animation injected into <body>, etc.).
+ *
+ * Every rule here MUST live at the global root rather than inside a component
+ * stylesheet because the elements they target sit outside the Angular
+ * component tree:
+ *   - driver.js appends its `.driver-popover` and `.driver-overlay` to <body>
+ *   - ng-zorro / CDK portal nz-select dropdowns into `.cdk-overlay-container`,
+ *     also at <body> level
+ *   - the sparkle burst is created via `document.body.appendChild(...)`
+ *     in tutorial.service.ts
+ *
+ * Angular's emulated view encapsulation rewrites component-scoped selectors
+ * with `[_ngcontent-xyz]` attributes, which match nothing on those
+ * outside-the-tree elements — so component styles cannot reach them.
+ *
+ * All rules are gated by either `body.driver-active` (only active during a
+ * tour) or the `.tutorial-*` / `.driver-popover.tutorial-*` namespace.
+ * When the tutorial flag is off and no tour is running, none of these rules
+ * apply to anything.
+ */
+
+/* driver.js — purely cosmetic. DO NOT override z-index here; driver.js
+   uses z-index: 1000000000 by design so the spotlight always wins. */
+.driver-popover {
+  max-width: 360px;
+}
+.driver-popover-title {
+  font-weight: 600;
+}
+.driver-popover-description b {
+  color: #1890ff;
+}
+
+/* Welcome popover — a centered, fancier variant of the standard driver.js
+   popover used for the first-time greeting. Wider, with a soft gradient and
+   a primary-coloured CTA so "Start building your first workflow" reads as
+   the obvious next step. */
+.driver-popover.tutorial-welcome-popover {
+  max-width: 460px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f5ff 100%);
+  border: 2px solid #1890ff;
+  box-shadow: 0 16px 48px rgba(24, 144, 255, 0.32);
+  animation: tutorial-welcome-pop 0.5s cubic-bezier(0.18, 1.25, 0.4, 1);
+
+  .driver-popover-title {
+    font-size: 20px;
+    color: #1890ff;
+    text-align: center;
+  }
+
+  .driver-popover-footer button.driver-popover-next-btn {
+    background: #1890ff;
+    border-color: #1890ff;
+    color: #fff;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(24, 144, 255, 0.45);
+    text-shadow: none;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:hover {
+      background: #40a9ff;
+      border-color: #40a9ff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(24, 144, 255, 0.6);
+    }
+  }
+
+  .tutorial-welcome-emoji {
+    font-size: 54px;
+    margin-bottom: 8px;
+    display: inline-block;
+    animation: tutorial-welcome-wave 1.4s ease-in-out infinite;
+    transform-origin: 70% 80%;
+  }
+}
+
+@keyframes tutorial-welcome-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-welcome-wave {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+/* Floating sparkle burst (fired on each step advance). Anchored in the
+   top-right corner so the celebration never overlaps the spotlight content
+   the user is reading. Sparkles fly down-left into the workspace; the XP
+   chip rises a few pixels and fades. */
+.tutorial-sparkle-burst {
+  position: fixed;
+  top: 56px;
+  right: 56px;
+  width: 0;
+  height: 0;
+  z-index: 1000000001; /* above driver.js's overlay z-index */
+  pointer-events: none;
+
+  .sparkle-particle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 12px;
+    color: #f5c542;
+    text-shadow: 0 0 6px rgba(245, 197, 66, 0.9);
+    transform: translate(-50%, -50%);
+    animation: tutorial-sparkle-fly 0.9s ease-out forwards;
+  }
+
+  .xp-float {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: linear-gradient(135deg, #faad14, #f5c542);
+    color: #fff;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(250, 173, 20, 0.5);
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    animation: tutorial-xp-rise 1.1s ease-out forwards;
+  }
+}
+
+@keyframes tutorial-sparkle-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(1.3) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 0px) * 1.6), calc(-50% + var(--dy, 0px) * 1.6)) scale(0.5) rotate(360deg);
+  }
+}
+
+@keyframes tutorial-xp-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 12px)) scale(1.08);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 40px)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 56px)) scale(1);
+  }
+}
+
+/* Flow-picker popover — bigger than the standard welcome popover, hosts
+   selectable flow cards. */
+.driver-popover.tutorial-picker-popover {
+  max-width: 520px;
+
+  .tutorial-picker {
+    .picker-intro {
+      margin-bottom: 14px;
+    }
+    .picker-tagline {
+      margin: 0 0 10px;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .picker-cta {
+      margin: 0 0 4px;
+      color: #1890ff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .picker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .picker-flow-card {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(24, 144, 255, 0.2);
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover:not(.disabled):not(:disabled) {
+        transform: translateY(-1px);
+        border-color: #1890ff;
+        box-shadow: 0 6px 16px rgba(24, 144, 255, 0.25);
+      }
+      &.disabled,
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        background: repeating-linear-gradient(45deg, #fff, #fff 6px, #fafafa 6px, #fafafa 12px);
+      }
+    }
+    .picker-flow-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #1f1f1f;
+      margin-bottom: 4px;
+    }
+    .picker-flow-emoji {
+      font-size: 18px;
+    }
+    .picker-flow-name {
+      flex: 1;
+    }
+    .picker-flow-desc {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+    }
+    .picker-flow-meta {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #999;
+    }
+    .picker-ribbon {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+
+      &.done {
+        background: #d9f7be;
+        color: #389e0d;
+      }
+      &.soon {
+        background: #fff7e6;
+        color: #d4a017;
+      }
+    }
+    .picker-skip {
+      display: block;
+      margin: 6px auto 0;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+
+      &:hover {
+        color: #555;
+      }
+    }
+  }
+}
+
+/* Resume popover — narrower, friendly "welcome back" prompt. */
+.driver-popover.tutorial-resume-popover {
+  max-width: 420px;
+
+  .tutorial-resume p {
+    margin: 0 0 6px;
+    font-size: 14px;
+  }
+  .resume-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .resume-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(24, 144, 255, 0.25);
+    background: #fff;
+    color: #1f1f1f;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: #1890ff;
+      transform: translateY(-1px);
+    }
+    &.primary {
+      background: #1890ff;
+      border-color: #1890ff;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.45);
+
+      &:hover {
+        background: #40a9ff;
+      }
+    }
+    &.ghost {
+      background: transparent;
+      border-color: transparent;
+      color: #888;
+      &:hover {
+        color: #555;
+        transform: none;
+      }
+    }
+  }
+}
+
+/* Hide the progress text on popovers tagged with this class. driver.js's
+   per-step `showProgress: false` is resolved via an OR-chain
+   (`a = w || s("showProgress") || false`) which means a per-step `false`
+   value gets overridden by a global `true` — leaving us no real per-step
+   off switch. This CSS hook is the workaround: detail steps that should
+   not be counted in the main spine declare popoverClass:
+   "tutorial-no-progress" and the counter element disappears. */
+.driver-popover.tutorial-no-progress .driver-popover-progress-text {
+  display: none !important;
+}
+
+/* Wide variant for popovers that hover above wider spotlight targets
+   (e.g. the middle toolbar group, which spans most of the viewport).
+   driver.js's default popover maxes at 300px which looks dwarfed next to a
+   wide stage; bump to 440px on this step so the popover reads naturally. */
+.driver-popover.tutorial-wide-popover {
+  max-width: 440px;
+}
+
+/* "Tell me more" opt-in deep-dive button injected into overview-step
+   popovers (workspace overview tour). Visually identical shape to the
+   default Next button, just gray-on-gray instead of accented — keeps Next
+   as the obvious primary action while the deeper path stays available. */
+.driver-popover .driver-popover-navigation-btns .tutorial-show-details-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-block;
+  padding: 3px 7px;
+  line-height: 1.3;
+  font: 12px / normal sans-serif;
+  color: #555;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-right: 4px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.driver-popover .driver-popover-navigation-btns .tutorial-show-details-btn:hover {
+  background: #ebebeb;
+  border-color: #b3b3b3;
+}
+
+/* driver.js by default sets pointer-events:none on every element outside the
+   highlighted one. That breaks drag-and-drop tutorial steps (user can grab the
+   operator label but the canvas refuses the drop). Re-enable interaction
+   everywhere while the tour is active — the dim overlay still gives the visual
+   cue, but the page stays fully usable. */
+body.driver-active *:not(.driver-overlay) {
+  pointer-events: auto !important;
+}
+body.driver-active .driver-overlay {
+  pointer-events: none !important;
+}
+
+/* Suppress ng-zorro tooltips/popovers while a tour step is active. Their
+   CDK-overlay positioning re-measures whenever driver.js mutates the active
+   element's inline styles, producing visible tooltip jitter on every step.
+   The driver.js popover already fills the "tooltip" role during the tour. */
+body.driver-active .ant-tooltip,
+body.driver-active .ant-popover {
+  display: none !important;
+}
+
+/* driver.js's default CSS forces `overflow: hidden !important` on the active
+   element's direct parent (so the user can't scroll past the spotlight).
+   That breaks two things in the property editor:
+   1. The form's nz-select dropdowns get clipped / unclickable.
+   2. The ancestor scroll container (#content) can't scroll because the
+      forced-hidden node in between intercepts wheel events.
+   We restore the parent's overflow to visible — its original default — so
+   the form behaves normally and scroll events bubble up to #content. */
+body.driver-active :not(body):has(> .driver-active-element) {
+  overflow: visible !important;
+}
+
+/* ng-zorro renders nz-select / nz-autocomplete dropdowns via CDK Overlay
+   portaled to a <body>-level container at default z-index 1000. driver.js's
+   dim overlay sits at z-index ~100000+, which means open dropdowns get
+   visually buried under the overlay — they "open" but the user can't see
+   them. Lift the CDK overlay container above driver.js's popover so
+   dropdowns inside the spotlighted form remain visible and clickable. */
+body.driver-active .cdk-overlay-container {
+  z-index: 1000000001 !important;
+}
+
+/* Freeze hover / focus / wave reactions on small clickable spotlights
+   (icons, menu items, buttons) so cursor wobble at the stage cutout edge
+   doesn't flicker them. Scoped to li / button / nz-icon hosts only — the
+   form-area spotlights (.property-editor-form, .driver-active-element with
+   nested ng-zorro components) MUST keep their transitions, otherwise
+   nz-select / formly-form get stuck in mid-transition state and the form
+   becomes unresponsive after the first selection. */
+body.driver-active li.driver-active-element,
+body.driver-active button.driver-active-element,
+body.driver-active .driver-active-element[nz-icon],
+body.driver-active li.driver-active-element *,
+body.driver-active button.driver-active-element * {
+  transition: none !important;
+  animation: none !important;
+}
+body.driver-active li.driver-active-element .ant-wave,
+body.driver-active button.driver-active-element .ant-wave,
+body.driver-active li.driver-active-element [ant-click-animating-without-extra-node],
+body.driver-active button.driver-active-element [ant-click-animating-without-extra-node] {
+  display: none !important;
+}

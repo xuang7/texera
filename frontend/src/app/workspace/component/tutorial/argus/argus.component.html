@@ -1,0 +1,152 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
+<div
+  class="argus-wrapper"
+  [ngClass]="'argus-state-' + state"
+  [style.width.px]="size"
+  [style.height.px]="size">
+  <svg
+    class="argus-svg"
+    [attr.width]="size"
+    [attr.height]="size"
+    viewBox="0 0 64 64"
+    xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient
+        id="ring-outer"
+        cx="50%"
+        cy="50%"
+        r="50%">
+        <stop
+          offset="50%"
+          stop-color="#1ab37e" />
+        <stop
+          offset="100%"
+          stop-color="#0f8f6c" />
+      </radialGradient>
+      <radialGradient
+        id="ring-mid"
+        cx="50%"
+        cy="50%"
+        r="50%">
+        <stop
+          offset="40%"
+          stop-color="#f5c542" />
+        <stop
+          offset="100%"
+          stop-color="#d4a017" />
+      </radialGradient>
+      <radialGradient
+        id="ring-inner"
+        cx="50%"
+        cy="50%"
+        r="50%">
+        <stop
+          offset="35%"
+          stop-color="#1aa3c4" />
+        <stop
+          offset="100%"
+          stop-color="#0d6f8c" />
+      </radialGradient>
+      <radialGradient
+        id="pupil-grad"
+        cx="50%"
+        cy="50%"
+        r="50%">
+        <stop
+          offset="0%"
+          stop-color="#3a1d8c" />
+        <stop
+          offset="100%"
+          stop-color="#1b1464" />
+      </radialGradient>
+      <filter
+        id="argus-glow"
+        x="-30%"
+        y="-30%"
+        width="160%"
+        height="160%">
+        <feGaussianBlur
+          stdDeviation="2"
+          result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+
+    <g
+      class="argus-body"
+      filter="url(#argus-glow)">
+      <!-- almond / teardrop body, tilted 5° -->
+      <g transform="rotate(-5 32 32)">
+        <ellipse
+          cx="32"
+          cy="32"
+          rx="28"
+          ry="22"
+          fill="url(#ring-outer)" />
+        <ellipse
+          cx="32"
+          cy="32"
+          rx="22"
+          ry="16"
+          fill="url(#ring-mid)" />
+        <ellipse
+          cx="32"
+          cy="32"
+          rx="14"
+          ry="10"
+          fill="url(#ring-inner)" />
+        <g class="argus-pupil">
+          <ellipse
+            cx="32"
+            cy="32"
+            rx="6"
+            ry="5"
+            fill="url(#pupil-grad)" />
+          <circle
+            class="argus-catchlight"
+            cx="30"
+            cy="30"
+            r="1.4"
+            fill="#fff" />
+        </g>
+        <!-- eyelid for blinking -->
+        <ellipse
+          class="argus-eyelid"
+          cx="32"
+          cy="32"
+          rx="28"
+          ry="22"
+          fill="#0a4f3b" />
+      </g>
+    </g>
+  </svg>
+
+  <!-- sparkle particles, shown during cheer -->
+  <div class="argus-sparkles">
+    <span class="sparkle sparkle-1">✦</span>
+    <span class="sparkle sparkle-2">✧</span>
+    <span class="sparkle sparkle-3">✦</span>
+    <span class="sparkle sparkle-4">✧</span>
+  </div>
+</div>

@@ -1,0 +1,267 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.trophy-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 10002;
+  animation: trophy-fade-in 0.2s ease;
+}
+
+.trophy-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 380px;
+  max-width: 92vw;
+  background: linear-gradient(180deg, #ffffff 0%, #fff9ec 100%);
+  border-left: 2px solid #faad14;
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.18);
+  z-index: 10003;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+
+  &.open {
+    transform: translateX(0);
+  }
+}
+
+.trophy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(250, 173, 20, 0.3);
+}
+
+.trophy-title-block {
+  flex: 1;
+}
+
+.trophy-title {
+  margin: 0;
+  font-size: 18px;
+  color: #1f1f1f;
+}
+
+.trophy-subtitle {
+  font-size: 12px;
+  color: #888;
+}
+
+.trophy-close {
+  font-size: 16px;
+}
+
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.trophy-tile {
+  perspective: 800px;
+  cursor: pointer;
+  min-height: 150px;
+
+  &.locked .tile-front {
+    filter: grayscale(60%);
+    opacity: 0.7;
+  }
+}
+
+.tile-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+
+  .trophy-tile.is-flipped & {
+    transform: rotateY(180deg);
+  }
+}
+
+.tile-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 8px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: box-shadow 0.2s ease;
+
+  .trophy-tile.earned & {
+    border-color: #faad14;
+    box-shadow: 0 6px 16px rgba(250, 173, 20, 0.18);
+  }
+
+  .trophy-tile.earned:hover & {
+    box-shadow: 0 10px 22px rgba(250, 173, 20, 0.3);
+  }
+}
+
+.tile-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #fff9ec 0%, #fff 100%);
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 16px 12px;
+}
+
+.tile-icon {
+  margin: 0 auto 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-emoji {
+  font-size: 30px;
+}
+
+.tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f1f1f;
+  margin-bottom: 2px;
+}
+
+.tile-back-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin-bottom: 4px;
+}
+
+.tile-back-desc {
+  font-size: 11px;
+  color: #555;
+  line-height: 1.45;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tile-meta {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.tile-flip-hint {
+  margin-top: auto;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #c0c0c0;
+  user-select: none;
+}
+
+.trophy-flow-list {
+  border-top: 1px solid rgba(250, 173, 20, 0.3);
+  padding: 14px 20px 20px;
+
+  h4 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #1f1f1f;
+  }
+}
+
+.trophy-flow-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1.5px solid rgba(24, 144, 255, 0.18);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    border-color: #1890ff;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.22);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.flow-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.flow-meta {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flow-stub {
+  background: rgba(250, 173, 20, 0.15);
+  color: #d4a017;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.coming-soon {
+  background: repeating-linear-gradient(45deg, #fff, #fff 6px, #fff9ec 6px, #fff9ec 12px);
+}
+
+@keyframes trophy-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

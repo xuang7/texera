@@ -332,4 +332,8 @@ export class WorkspaceComponent implements AfterViewInit, OnInit, OnDestroy {
   public get copilotEnabled(): boolean {
     return this.config.env.copilotEnabled;
   }
+
+  public get tutorialEnabled(): boolean {
+    return this.config.env.tutorialEnabled;
+  }
 }

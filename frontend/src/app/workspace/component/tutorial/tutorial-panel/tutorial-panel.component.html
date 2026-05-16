@@ -17,28 +17,57 @@
  under the License.
 -->
 
-<!-- Completion toast (shown briefly after the user finishes the tour) -->
+<!-- Completion toast — pops in for ~6s after the user finishes any flow -->
 <div
   *ngIf="showCompletion"
   class="tutorial-completion">
   <span class="tutorial-completion-emoji">🎉</span>
   <div class="tutorial-completion-text">
     <strong>Awesome — you did it!</strong>
-    <span class="tutorial-completion-sub">You just built your first Texera workflow. Click any operator to peek at its data.</span>
+    <span class="tutorial-completion-sub"
+      >You just built your first Texera workflow. Click any operator to peek at its data.</span
+    >
   </div>
 </div>
 
-<!-- Floating "Start Tutorial" launcher — visible whenever the tour is not running -->
-<button
+<!-- Floating launcher cluster — visible whenever no tour is running.
+     Houses both "Start Tutorial" and a trophy-shelf shortcut so the shelf
+     is discoverable without committing to another tour. -->
+<div
   *ngIf="!isActive"
-  class="tutorial-start-btn"
-  nz-button
-  nzType="primary"
-  nz-tooltip
-  nzTooltipTitle="Take a quick guided tour — about 2 minutes ✨"
-  (click)="onRestart()">
-  <span
-    nz-icon
-    nzType="play-circle"></span>
-  Start Tutorial
-</button>
+  class="tutorial-launcher-cluster">
+  <button
+    class="tutorial-trophy-btn"
+    nz-button
+    nzType="default"
+    nz-tooltip
+    nzTooltipTitle="Trophy shelf — see your badges"
+    (click)="onTrophyClick()">
+    <span
+      nz-icon
+      nzType="trophy"></span>
+  </button>
+  <button
+    class="tutorial-start-btn"
+    nz-button
+    nzType="primary"
+    nz-tooltip
+    nzTooltipTitle="Pick a guided tour"
+    (click)="onLaunchPicker()">
+    <span
+      nz-icon
+      nzType="play-circle"></span>
+    Start Tutorial
+  </button>
+</div>
+<texera-badge-unlocked
+  [badge]="pendingBadge"
+  [flowName]="pendingBadgeFlow"
+  (dismiss)="onBadgeDismissed()"
+  (viewShelf)="onBadgeViewShelf()"></texera-badge-unlocked>
+
+<texera-trophy-shelf
+  [open]="trophyShelfOpen"
+  [progress]="progress"
+  (closed)="onTrophyClosed()"
+  (startFlow)="onTrophyStartFlow($event)"></texera-trophy-shelf>

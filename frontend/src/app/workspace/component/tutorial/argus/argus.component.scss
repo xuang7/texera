@@ -1,0 +1,206 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+:host {
+  display: inline-block;
+  position: relative;
+  line-height: 0;
+}
+
+.argus-wrapper {
+  position: relative;
+  display: inline-block;
+  filter: drop-shadow(0 6px 14px rgba(20, 130, 150, 0.4));
+}
+
+.argus-svg {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+.argus-body {
+  transform-origin: 32px 32px;
+}
+
+.argus-pupil {
+  transform-origin: 32px 32px;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+
+.argus-eyelid {
+  transform-origin: 32px 32px;
+  transform: scaleY(0);
+  transform-box: fill-box;
+  transition: transform 80ms linear;
+}
+
+/* sparkles */
+.argus-sparkles {
+  position: absolute;
+  inset: -10px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.sparkle {
+  position: absolute;
+  font-size: 14px;
+  color: #f5c542;
+  text-shadow: 0 0 6px rgba(245, 197, 66, 0.85);
+  opacity: 0;
+}
+
+.sparkle-1 {
+  top: 4px;
+  left: 50%;
+}
+.sparkle-2 {
+  top: 50%;
+  right: 0;
+}
+.sparkle-3 {
+  bottom: 4px;
+  left: 50%;
+}
+.sparkle-4 {
+  top: 50%;
+  left: 0;
+}
+
+/* ===== STATES ===== */
+
+/* idle — gentle vertical bob, periodic blink */
+.argus-state-idle .argus-body {
+  animation: argus-bob 3.2s ease-in-out infinite;
+}
+
+.argus-state-idle .argus-eyelid {
+  animation: argus-blink 5s ease-in-out infinite;
+}
+
+/* thinking — pupil rolled up, body tilts */
+.argus-state-thinking .argus-body {
+  animation: argus-think 1.6s ease-in-out infinite;
+}
+
+.argus-state-thinking .argus-pupil {
+  transform: translateY(-5px) !important;
+}
+
+/* cheer — quick bounce, sparkles flash */
+.argus-state-cheer .argus-body {
+  animation: argus-cheer 0.6s ease-out;
+}
+
+.argus-state-cheer .sparkle {
+  animation: argus-sparkle 0.8s ease-out;
+}
+
+.argus-state-cheer .sparkle-1 {
+  animation-delay: 0ms;
+}
+.argus-state-cheer .sparkle-2 {
+  animation-delay: 80ms;
+}
+.argus-state-cheer .sparkle-3 {
+  animation-delay: 160ms;
+}
+.argus-state-cheer .sparkle-4 {
+  animation-delay: 240ms;
+}
+
+/* wave — side-to-side rock, used on welcome */
+.argus-state-wave .argus-body {
+  animation: argus-wave 1.4s ease-in-out infinite;
+}
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes argus-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes argus-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(0);
+  }
+  94%,
+  97% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes argus-think {
+  0%,
+  100% {
+    transform: rotate(-3deg) translateY(0);
+  }
+  50% {
+    transform: rotate(3deg) translateY(-2px);
+  }
+}
+
+@keyframes argus-cheer {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-8px) scale(1.08);
+  }
+  60% {
+    transform: translateY(-2px) scale(0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes argus-wave {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes argus-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(360deg);
+  }
+}

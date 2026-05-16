@@ -1,0 +1,60 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
+<div
+  *ngIf="badge"
+  class="badge-unlocked-backdrop"
+  (click)="close()">
+  <div
+    class="badge-unlocked-card"
+    (click)="$event.stopPropagation()">
+    <texera-argus
+      [state]="'cheer'"
+      [size]="72"
+      class="badge-argus"></texera-argus>
+    <div class="badge-unlocked-label">Badge Unlocked!</div>
+    <div
+      class="badge-icon"
+      [style.background]="'radial-gradient(circle at 30% 30%, #fff7d6 0%, ' + (badge.hue || '#1890ff') + ' 100%)'">
+      <span class="badge-emoji">{{ badge.emoji }}</span>
+    </div>
+    <div class="badge-name">{{ badge.name }}</div>
+    <div class="badge-desc">{{ badge.description }}</div>
+    <div
+      *ngIf="flowName"
+      class="badge-flow-context">
+      Earned during <i>{{ flowName }}</i>
+    </div>
+
+    <div class="badge-actions">
+      <button
+        nz-button
+        nzType="default"
+        (click)="close()">
+        <span>Continue exploring</span>
+      </button>
+      <button
+        nz-button
+        nzType="primary"
+        (click)="openShelf()">
+        <span>View trophy shelf 🏆</span>
+      </button>
+    </div>
+  </div>
+</div>

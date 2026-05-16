@@ -1,0 +1,102 @@
+{
+  "name": "Tutorial — Movies (filtered)",
+  "description": "Pre-built starter workflow used by the chart-building tour. CSV → Filter(year > 1960).",
+  "wid": null,
+  "creationTime": null,
+  "lastModifiedTime": null,
+  "isPublished": 0,
+  "readonly": false,
+  "content": {
+    "operators": [
+      {
+        "operatorID": "CSVFileScan-operator-171d5ebd-a2cb-4a8c-997c-135eae5a4978",
+        "operatorType": "CSVFileScan",
+        "operatorVersion": "N/A",
+        "operatorProperties": {
+          "fileEncoding": "UTF_8",
+          "customDelimiter": ",",
+          "hasHeader": true,
+          "fileName": "/texera/test/v1/movies (1).csv"
+        },
+        "inputPorts": [],
+        "outputPorts": [
+          {
+            "portID": "output-0",
+            "displayName": "",
+            "disallowMultiInputs": false,
+            "isDynamicPort": false
+          }
+        ],
+        "showAdvanced": false,
+        "isDisabled": false,
+        "customDisplayName": "CSV File Scan",
+        "dynamicInputPorts": false,
+        "dynamicOutputPorts": false
+      },
+      {
+        "operatorID": "Filter-operator-83c55041-a9f9-4a0c-8ceb-c9b63e5e27bc",
+        "operatorType": "Filter",
+        "operatorVersion": "N/A",
+        "operatorProperties": {
+          "predicates": [
+            {
+              "attribute": "year",
+              "condition": ">",
+              "value": "1960"
+            }
+          ]
+        },
+        "inputPorts": [
+          {
+            "portID": "input-0",
+            "displayName": "",
+            "disallowMultiInputs": false,
+            "isDynamicPort": false,
+            "dependencies": []
+          }
+        ],
+        "outputPorts": [
+          {
+            "portID": "output-0",
+            "displayName": "",
+            "disallowMultiInputs": false,
+            "isDynamicPort": false
+          }
+        ],
+        "showAdvanced": false,
+        "isDisabled": false,
+        "customDisplayName": "Filter",
+        "dynamicInputPorts": false,
+        "dynamicOutputPorts": false
+      }
+    ],
+    "operatorPositions": {
+      "CSVFileScan-operator-171d5ebd-a2cb-4a8c-997c-135eae5a4978": {
+        "x": 350,
+        "y": 200
+      },
+      "Filter-operator-83c55041-a9f9-4a0c-8ceb-c9b63e5e27bc": {
+        "x": 500,
+        "y": 200
+      }
+    },
+    "links": [
+      {
+        "linkID": "link-3d2aef7b-0cb5-49b4-9811-71f74e871841",
+        "source": {
+          "operatorID": "CSVFileScan-operator-171d5ebd-a2cb-4a8c-997c-135eae5a4978",
+          "portID": "output-0"
+        },
+        "target": {
+          "operatorID": "Filter-operator-83c55041-a9f9-4a0c-8ceb-c9b63e5e27bc",
+          "portID": "input-0"
+        }
+      }
+    ],
+    "commentBoxes": [],
+    "settings": {
+      "dataTransferBatchSize": 400,
+      "executionMode": "PIPELINED"
+    }
+  }
+}

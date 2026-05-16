@@ -51,6 +51,7 @@ export class MockGuiConfigService {
     expirationTimeInMinutes: 2880,
     activeTimeInMinutes: 15,
     copilotEnabled: false,
+    tutorialEnabled: false,
     limitColumns: 15,
   };
 

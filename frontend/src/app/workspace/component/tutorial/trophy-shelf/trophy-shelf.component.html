@@ -1,0 +1,94 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ by the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
+<div
+  *ngIf="open"
+  class="trophy-backdrop"
+  (click)="onClose()"></div>
+
+<aside
+  class="trophy-drawer"
+  [class.open]="open">
+  <header class="trophy-header">
+    <texera-argus
+      [state]="'idle'"
+      [size]="40"></texera-argus>
+    <div class="trophy-title-block">
+      <h3 class="trophy-title">Trophy Shelf 🏆</h3>
+      <div class="trophy-subtitle">{{ earnedCount }} / {{ totalCount }} badges · {{ xp }} XP earned</div>
+    </div>
+    <button
+      class="trophy-close"
+      nz-button
+      nzType="text"
+      (click)="onClose()">
+      ✕
+    </button>
+  </header>
+
+  <div class="trophy-grid">
+    <div
+      *ngFor="let row of rows"
+      class="trophy-tile"
+      [ngClass]="{ earned: row.earned, locked: !row.earned, 'is-flipped': flipped.has(row.badge.id) }"
+      (click)="toggleFlip(row.badge.id)">
+      <div class="tile-inner">
+        <div class="tile-face tile-front">
+          <div
+            class="tile-icon"
+            [style.background]="row.earned ? ('radial-gradient(circle at 30% 30%, #fff7d6 0%, ' + (row.badge.hue || '#1890ff') + ' 100%)') : '#e8e8e8'">
+            <span class="tile-emoji">{{ row.earned ? row.badge.emoji : '🔒' }}</span>
+          </div>
+          <div class="tile-name">{{ row.badge.name }}</div>
+          <div
+            *ngIf="row.earned && row.earnedAt"
+            class="tile-meta">
+            Earned {{ row.earnedAt | date:'mediumDate' }}
+          </div>
+          <div class="tile-flip-hint">Tap to flip</div>
+        </div>
+        <div class="tile-face tile-back">
+          <div class="tile-back-name">{{ row.badge.name }}</div>
+          <div class="tile-back-desc">{{ row.badge.description }}</div>
+          <div class="tile-flip-hint">Tap to flip back</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trophy-flow-list">
+    <h4>Start a tour</h4>
+    <button
+      *ngFor="let flow of flows"
+      class="trophy-flow-btn"
+      [class.coming-soon]="flow.comingSoon"
+      [disabled]="flow.comingSoon"
+      (click)="onStartFlow(flow.id)">
+      <span class="flow-name">{{ flow.name }}</span>
+      <span class="flow-meta">
+        {{ flow.estimatedMinutes }}&nbsp;min · {{ flow.difficulty }}
+        <span
+          *ngIf="flow.comingSoon"
+          class="flow-stub"
+          >coming soon</span
+        >
+      </span>
+    </button>
+  </div>
+</aside>

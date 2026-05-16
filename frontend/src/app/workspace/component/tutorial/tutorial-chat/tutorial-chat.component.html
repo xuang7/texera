@@ -18,31 +18,38 @@
 -->
 
 <ng-container *ngIf="isTutorialActive">
+  <!-- One-time nudge bubble pointing at Argus. Disappears the moment the
+       user opens the chat for the first time, so it never re-appears
+       mid-tour. -->
+  <div
+    *ngIf="!isOpen && !hasOpenedChatOnce"
+    class="argus-nudge"
+    (click)="togglePanel()">
+    I'm your tutor — ask me anything!
+  </div>
+
+  <!-- Floating Argus = the agent. Click to open the chat. -->
   <button
-    class="chat-toggle-btn"
-    nz-button
-    nzType="primary"
+    class="argus-toggle-btn"
+    type="button"
     nz-tooltip
-    [nzTooltipTitle]="isOpen ? '' : 'Ask AI about this step'"
+    [nzTooltipTitle]="isOpen ? '' : 'Ask Argus about this step'"
     nzTooltipPlacement="left"
     (click)="togglePanel()">
-    <span
-      nz-icon
-      [nzType]="isOpen ? 'close' : 'robot'"></span>
-    <span
-      *ngIf="!isOpen"
-      class="chat-btn-label">Ask AI</span>
+    <texera-argus
+      [state]="argusState"
+      [size]="38"></texera-argus>
   </button>
 
   <div
     class="chat-panel"
     [class.open]="isOpen">
     <div class="chat-header">
-      <span
-        nz-icon
-        nzType="robot"
-        style="font-size:18px; color:#fff"></span>
-      <span class="chat-header-title">Tutorial Assistant</span>
+      <texera-argus
+        [state]="argusState"
+        [size]="32"
+        class="chat-header-argus"></texera-argus>
+      <span class="chat-header-title">Argus — your Texera tutor</span>
       <button
         nz-button
         nzType="text"
@@ -65,7 +72,9 @@
         <div class="message-bubble">
           <span
             *ngIf="msg.role !== 'user'"
-            class="message-icon">🤖</span>
+            class="message-icon"
+            >🦚</span
+          >
           <div class="message-content">{{ msg.content }}</div>
         </div>
       </div>
@@ -74,10 +83,8 @@
         *ngIf="isSending"
         class="chat-message agent-message">
         <div class="message-bubble">
-          <span class="message-icon">🤖</span>
-          <div class="typing-indicator">
-            <span></span><span></span><span></span>
-          </div>
+          <span class="message-icon">🦚</span>
+          <div class="typing-indicator"><span></span><span></span><span></span></div>
         </div>
       </div>
     </div>
@@ -86,7 +93,7 @@
       <input
         nz-input
         class="chat-input"
-        placeholder="Ask about this step..."
+        placeholder="Ask Argus..."
         [(ngModel)]="inputText"
         (keydown)="onKeyEnter($event)"
         [disabled]="isSending" />

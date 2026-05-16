@@ -1,0 +1,135 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.badge-unlocked-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  animation: badge-fade-in 0.25s ease;
+}
+
+.badge-unlocked-card {
+  background: linear-gradient(160deg, #ffffff 0%, #fff7d6 100%);
+  border: 2px solid #faad14;
+  border-radius: 16px;
+  padding: 24px 32px 22px;
+  width: min(420px, 90vw);
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(250, 173, 20, 0.4);
+  animation: badge-pop-in 0.55s cubic-bezier(0.18, 1.25, 0.4, 1);
+}
+
+.badge-argus {
+  display: inline-block;
+}
+
+.badge-unlocked-label {
+  margin-top: 6px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #faad14;
+  font-weight: 700;
+}
+
+.badge-icon {
+  margin: 14px auto 10px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 -6px 14px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: badge-spin-in 0.8s cubic-bezier(0.18, 1.25, 0.4, 1);
+}
+
+.badge-emoji {
+  font-size: 56px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.badge-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin-bottom: 6px;
+}
+
+.badge-desc {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.badge-flow-context {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+.badge-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@keyframes badge-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes badge-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(20px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badge-spin-in {
+  0% {
+    transform: rotate(-180deg) scale(0.3);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
