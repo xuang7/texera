@@ -239,7 +239,7 @@ object OperatorScriptGenerator {
        |  override val operatorName: String = "$operatorName"
        |  override val category: String = "$category"
        |  override val outputFileName: String = "$outputFileName"
-       |  private val operatorType: String = "$operatorType"
+       |  override val operatorType: String = "$operatorType"
        |
        |  override def prepare(ctx: ControllerContext): Unit = {
        |    val user = TestDataConfig.users.headOption

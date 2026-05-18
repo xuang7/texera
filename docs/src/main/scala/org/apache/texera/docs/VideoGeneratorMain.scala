@@ -1,5 +1,6 @@
 package org.apache.texera.docs
 
+import org.apache.texera.docs.autofix.AutoFixOrchestrator
 import org.apache.texera.docs.controllers.ControllerStep
 import org.apache.texera.docs.orchestrator.{OperatorScenario, VideoRunner}
 import org.apache.texera.docs.scripts.OperatorScript
@@ -30,16 +31,7 @@ object VideoGeneratorMain {
 
   // Operators that crash or time-out at runtime regardless of args. Listed by
   // user-friendly name (matches `OperatorScript.operatorName`).
-  private val runtimeSkip: Set[String] = Set(
-    // GaussianNB rejects sparse matrices from CountVectorizer/TfidfTransformer.
-    "Gaussian Naive Bayes",
-    "Training: Gaussian Naive Bayes",
-    // LinearRegression default has no countVectorizer; PolynomialFeatures fails on text columns.
-    "Linear Regression",
-    // GradientBoosting on high-dim sparse TF-IDF is too slow and trips Playwright timeouts.
-    "Gradient Boosting",
-    "Training: Gradient Boosting"
-  ).map(normalize)
+  private val runtimeSkip: Set[String] = Set.empty[String]
 
   def main(args: Array[String]): Unit = {
     println("\n╔════════════════════════════════════════════════════╗")
@@ -49,6 +41,8 @@ object VideoGeneratorMain {
     val groupOpt = parseFirst(args, "--group=")
     val names = parseNames(args)
     val limitOpt = parseLimit(args)
+    val autoFix = args.exists(a => a == "--auto-fix" || a == "--autofix")
+    val maxAttempts = parseFirst(args, "--max-attempts=").flatMap(_.toIntOption).getOrElse(3)
 
     val pool: Seq[OperatorScript] = groupOpt match {
       case Some(g) =>
@@ -75,8 +69,76 @@ object VideoGeneratorMain {
       return
     }
 
-    new VideoRunner().generateVideos(selected.map(toScenario))
+    val scenarios = selected.map(toScenario)
+    if (autoFix) {
+      println(s"[VideoGenerator] auto-fix enabled, max-attempts=$maxAttempts")
+      val outcomes = new AutoFixOrchestrator(maxAttempts).run(scenarios)
+      printAutoFixReport(outcomes, groupOpt, maxAttempts)
+    } else {
+      new VideoRunner().generateVideos(scenarios)
+    }
     println("Complete.\n")
+  }
+
+  // Group-level summary: succeed/fail counts, list of failures with brief reason,
+  // and a breakdown of successes by "attempt 1 vs. needed LLM retry" — the retry
+  // bucket is what tells us whether the agent is doing useful work.
+  private def printAutoFixReport(
+    outcomes: Seq[org.apache.texera.docs.autofix.AutoFixOutcome],
+    groupOpt: Option[String],
+    maxAttempts: Int
+  ): Unit = {
+    val total = outcomes.length
+    val succeeded = outcomes.filter(_.succeeded)
+    val failed = outcomes.filterNot(_.succeeded)
+    val firstTry = succeeded.filter(_.attempts.isEmpty)
+    val retryWin = succeeded.filterNot(_.attempts.isEmpty)
+
+    val bar = "═" * 70
+    val line = "─" * 70
+
+    println()
+    println(bar)
+    println("  AutoFix Run Report")
+    println(bar)
+    groupOpt.foreach(g => println(s"  group:   $g"))
+    println(s"  total:   $total")
+    println(s"  ✓ succeeded: ${succeeded.length}    ✗ failed: ${failed.length}")
+
+    if (failed.nonEmpty) {
+      println(line)
+      println("  ✗ Failed:")
+      failed.foreach { o =>
+        val attemptsUsed = math.max(o.attempts.length, 1)
+        val lastEx = o.attempts.lastOption.map { a =>
+          val rf = a.failure.runFailure
+          val firstLine = Option(rf.exceptionMessage).getOrElse("").split("\n", 2).head
+          val msg = if (firstLine.length > 80) firstLine.take(77) + "..." else firstLine
+          s"${rf.exceptionClass.split('.').last}: $msg"
+        }.getOrElse("<no failure details captured>")
+        println(f"    - ${o.operatorName}%-40s ($attemptsUsed/${maxAttempts} attempts)  $lastEx")
+      }
+    }
+
+    if (firstTry.nonEmpty) {
+      println(line)
+      println(s"  ✓ Succeeded on attempt 1: ${firstTry.length}")
+    }
+
+    if (retryWin.nonEmpty) {
+      println(line)
+      println("  ✓ Succeeded after LLM patch:")
+      retryWin.foreach { o =>
+        val patches = o.attempts.count(_.applied)
+        val patchedSummary = if (patches == 1) "1 patch" else s"$patches patches"
+        println(f"    - ${o.operatorName}%-40s (${o.attempts.length + 1} attempts, $patchedSummary)")
+      }
+    }
+
+    println(line)
+    println("  Details: docs/generated/unfixed.json")
+    println(bar)
+    println()
   }
 
   private def normalize(s: String): String =
@@ -101,6 +163,7 @@ object VideoGeneratorMain {
   private def toScenario(script: OperatorScript): OperatorScenario =
     OperatorScenario(
       operatorName = script.operatorName,
+      operatorType = script.operatorType,
       category = script.category,
       steps = Seq(
         ControllerStep(s"Prepare: ${script.operatorName}")(script.prepare),

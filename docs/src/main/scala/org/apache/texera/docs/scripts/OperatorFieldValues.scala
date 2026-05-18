@@ -13,14 +13,21 @@ object OperatorFieldValues {
     "docs", "src", "main", "scala", "org", "apache", "texera", "docs", "config", "operator-field-values.json"
   )
 
-  private lazy val loadedRoot: JsonNode = {
+  @volatile private var cachedRoot: Option[JsonNode] = None
+
+  private def loadedRoot: JsonNode = cachedRoot.getOrElse {
     if (!Files.exists(configFile)) {
       throw new IllegalStateException(
         s"operator-field-values.json not found: ${configFile.toString}"
       )
     }
-    mapper.readTree(configFile.toFile)
+    val r = mapper.readTree(configFile.toFile)
+    cachedRoot = Some(r)
+    r
   }
+
+  /** Drop the in-memory cache so the next read re-parses operator-field-values.json from disk. */
+  def reload(): Unit = { cachedRoot = None }
 
   private def operatorNode(operatorType: String): JsonNode =
     loadedRoot.path("operators").path(operatorType)
@@ -28,7 +35,40 @@ object OperatorFieldValues {
   // Meta-keys that describe the operator config itself, not actual form fields.
   // These are stripped before form-fill so the form controller doesn't try to
   // resolve a non-existent UI field with this name.
-  private val metaKeys: Set[String] = Set("dataset")
+  private val metaKeys: Set[String] = Set("dataset", "_controllerHints")
+
+  private def hintsNode(operatorType: String): JsonNode =
+    operatorNode(operatorType).path("_controllerHints")
+
+  /** Override text used by [[insertViaDrag]] when searching the sidebar. */
+  def operatorSidebarText(operatorType: String): Option[String] = {
+    val n = hintsNode(operatorType).path("operatorSidebarText")
+    if (n.isMissingNode || n.isNull) None
+    else {
+      val t = n.asText("").trim
+      if (t.isEmpty) None else Some(t)
+    }
+  }
+
+  /** Per-operator override for a form field label. */
+  def formFieldLabelOverride(operatorType: String, fieldKey: String): Option[String] = {
+    val n = hintsNode(operatorType).path("formFieldLabels").path(fieldKey)
+    if (n.isMissingNode || n.isNull) None
+    else {
+      val t = n.asText("").trim
+      if (t.isEmpty) None else Some(t)
+    }
+  }
+
+  /** Override CSS / Playwright locator for the Run button. */
+  def runButtonSelector(operatorType: String): Option[String] = {
+    val n = hintsNode(operatorType).path("runButtonSelector")
+    if (n.isMissingNode || n.isNull) None
+    else {
+      val t = n.asText("").trim
+      if (t.isEmpty) None else Some(t)
+    }
+  }
 
   def typedValues(operatorType: String): Map[String, JsonNode] = {
     val node = operatorNode(operatorType)

@@ -9,6 +9,12 @@ import scala.collection.mutable.ArrayBuffer
 class ControllerContext(val page: Page) {
   private var _fakeCursorInstalled: Boolean = false
 
+  // Set by OperatorControllerBuilder.insertViaDrag so downstream builders
+  // (FormController, ExecutionController) can resolve per-operator hints
+  // from _controllerHints without each generated script having to thread
+  // operatorType through every fluent call.
+  @volatile var currentOperatorType: Option[String] = None
+
   def ensureFakeCursor(): Unit = {
     if (!_fakeCursorInstalled) {
       Utils.installFakeCursor(page)

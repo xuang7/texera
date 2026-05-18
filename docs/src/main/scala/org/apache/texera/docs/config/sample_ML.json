@@ -32,11 +32,13 @@
       "operatorProperties": {
         "isDrop": false,
         "attributes": [
-          { "originalAttribute": "name", "alias": "" },
           { "originalAttribute": "year", "alias": "" },
+          { "originalAttribute": "score", "alias": "" },
+          { "originalAttribute": "votes", "alias": "" },
+          { "originalAttribute": "budget", "alias": "" },
+          { "originalAttribute": "gross", "alias": "" },
           { "originalAttribute": "runtime", "alias": "" },
-          { "originalAttribute": "genre", "alias": "" },
-          { "originalAttribute": "score", "alias": "" }
+          { "originalAttribute": "rating", "alias": "" }
         ]
       },
       "inputPorts": [
@@ -59,6 +61,39 @@
       "showAdvanced": false,
       "isDisabled": false,
       "customDisplayName": "Projection",
+      "dynamicInputPorts": false,
+      "dynamicOutputPorts": false
+    },
+    {
+      "operatorID": "PythonUDFV2-operator-dropna-001",
+      "operatorType": "PythonUDFV2",
+      "operatorVersion": "N/A",
+      "operatorProperties": {
+        "code": "from pytexera import *\n\nclass ProcessTableOperator(UDFTableOperator):\n    @overrides\n    def process_table(self, table: Table, port: int) -> Iterator[Optional[TableLike]]:\n        yield table.dropna()\n",
+        "workers": 1,
+        "retainInputColumns": true,
+        "outputColumns": []
+      },
+      "inputPorts": [
+        {
+          "portID": "input-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false,
+          "dependencies": []
+        }
+      ],
+      "outputPorts": [
+        {
+          "portID": "output-0",
+          "displayName": "",
+          "allowMultiInputs": false,
+          "isDynamicPort": false
+        }
+      ],
+      "showAdvanced": false,
+      "isDisabled": false,
+      "customDisplayName": "Drop NaN",
       "dynamicInputPorts": false,
       "dynamicOutputPorts": false
     },
@@ -103,15 +138,19 @@
   ],
   "operatorPositions": {
     "CSVFileScan-operator-c80a68ab-ac78-4d96-8ce7-6d8f4332bad1": {
-      "x": 260,
+      "x": 200,
       "y": 260
     },
     "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5": {
-      "x": 430,
+      "x": 370,
+      "y": 260
+    },
+    "PythonUDFV2-operator-dropna-001": {
+      "x": 540,
       "y": 260
     },
     "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b": {
-      "x": 600,
+      "x": 710,
       "y": 260
     }
   },
@@ -128,9 +167,20 @@
       }
     },
     {
-      "linkID": "83e86236-1d5d-4947-abc6-05c3b7f7e1f7",
+      "linkID": "link-proj-to-dropna",
       "source": {
         "operatorID": "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5",
+        "portID": "output-0"
+      },
+      "target": {
+        "operatorID": "PythonUDFV2-operator-dropna-001",
+        "portID": "input-0"
+      }
+    },
+    {
+      "linkID": "link-dropna-to-split",
+      "source": {
+        "operatorID": "PythonUDFV2-operator-dropna-001",
         "portID": "output-0"
       },
       "target": {

@@ -375,7 +375,151 @@ Also regenerates `OperatorScriptRegistry.scala` with all script objects.
 
 ---
 
-## 12. TODO
+## 12. AutoFix Agent (WIP)
+
+> **Status: work in progress.** Triggered by `--auto-fix` on the `VideoGeneratorMain` CLI. The pieces below are implemented and compile, but the actual LLM-proposed patches have only been exercised on a handful of operators so far. Treat the contracts as draft and expect both the prompt and the hint vocabulary to evolve as we observe more failure modes.
+
+The AutoFix layer wraps `VideoRunner` so that a scenario failure no longer means "give up and write the operator into `unfixed.json`". Instead, the layer tries to remediate by asking Claude (via the Anthropic Messages API) to propose a minimal JSON-patch against `operator-field-values.json`, applies the patch in place, then reruns the same scenario — up to `--max-attempts` (default 3) times.
+
+### High-Level Flow
+
+```mermaid
+flowchart TD
+  A[VideoGeneratorMain --auto-fix] --> B[AutoFixOrchestrator]
+  B -->|attempt N| C[VideoRunner.runScenario]
+  C -->|Success| K[AutoFixOutcome: succeeded]
+  C -->|Failure: RunFailure| D[FailureCollector.enrich]
+  D --> E[FailureContext: + operator config + schema + dataset]
+  E --> F[LLMPatchProposer.proposePatch]
+  F -->|PatchEnvelope| G[OperatorFieldValuesValidator.validate]
+  G -->|issues != empty| F2[Re-prompt LLM with validator error]
+  G -->|valid| H[PatchApplier.apply]
+  H --> I[OperatorFieldValues.reload]
+  I -->|retry attempt N+1| C
+  F -->|empty diff / API error| J[Abort: AutoFixOutcome failed]
+  G -.->|second rejection| J
+```
+
+### Module Layout (`docs/.../autofix/`)
+
+| File | Responsibility |
+|---|---|
+| `AutoFixOrchestrator.scala` | Per-scenario retry loop: snapshot config → run → on failure, propose+validate+apply patch → retry → on success, return outcome. Restores snapshot when giving up so a bad patch doesn't pollute the JSON. |
+| `FailureCollector.scala` | Turns a raw `RunFailure` into a `FailureContext` by attaching the operator's current config block, the operator's JSON schema, and the dataset schema. This is what the LLM sees. |
+| `LLMPatchProposer.scala` | Calls Anthropic Messages API (`ANTHROPIC_API_KEY` env required). System prompt constrains the model to return a JSON-pointer `diff` array; user message bundles the exception + console errors + config + schema. Parses the response into a `PatchEnvelope`. |
+| `PatchApplier.scala` | Pure JSON manipulation: snapshot / dryRun / apply / restore against `operator-field-values.json`. Implements a small subset of RFC 6902 (add/remove/replace, "-" array append). |
+| `OperatorFieldValuesValidator.scala` | Reused from the offline validator — checks the proposed patch's result against operator schema (key, type, dataset column matches). The orchestrator does **dryRun → validate → re-prompt or apply**, so the LLM gets one feedback round before its patch is rejected outright. |
+| `PlaywrightConfigProbe.scala` | (placeholder for runtime probing; currently unused — see "Limitations" below) |
+| `AutoFixTypes.scala` | Case classes: `RunFailure`, `FailureContext`, `PatchOp`, `PatchEnvelope`, `AttemptRecord`, `AutoFixOutcome`. |
+
+### What the LLM Sees per Attempt
+
+```
+Operator type: SklearnLinearRegression
+Operator name: Linear Regression
+Failing step: Run Workflow And Wait
+Exception: java.lang.RuntimeException: Workflow execution did not finish within 240000ms. Run button text='Pause'.
+Browser console errors:
+<…top 30, de-duped…>
+Texera workflow error: <if extracted from .workflow-execution-error / .ant-message-error / texera-error-frame>
+
+Dataset key: test1
+Dataset schema: [{ "name": "score", "type": "double" }, …]
+
+Current operator config: { "target": "score", "degree": 1 }
+Operator JSON schema (relevant subset): { "title": …, "properties": …, "attributeTypeRules": … }
+
+(If a prior attempt was validator-rejected, the rejection message is appended and the model is asked to re-propose.)
+```
+
+The model is told to return **only** a JSON object with `operatorType`, `reasoning`, `confidence`, and a `diff` array of `{op, path, value?}` ops whose paths are RFC 6902 pointers relative to the operator's config object (so `/value`, not `/operators/BarChart/value`).
+
+### `_controllerHints` — Letting the Agent Patch UI Bindings
+
+Most operator failures are value-level (wrong column, wrong type, missing required field), which `operator-field-values.json` can express directly. But some failures are controller-level — the operator card has been renamed in the sidebar, a form field's label drifted, or the Run button got a different selector after a UI refactor. The agent can't rewrite Scala, so we expose a small set of UI-binding overrides under a reserved `_controllerHints` meta-key:
+
+```jsonc
+{
+  "operators": {
+    "BarChart": {
+      "value": "score",
+      "_controllerHints": {
+        "operatorSidebarText": "Bar Chart",
+        "formFieldLabels": { "value": "Y-Value Column" },
+        "runButtonSelector": "[data-testid='workflow-run-button']"
+      }
+    }
+  }
+}
+```
+
+| Hint key | Read by | Behavior |
+|---|---|---|
+| `operatorSidebarText` | `OperatorControllerBuilder.insertViaDrag` | Overrides the text typed into the sidebar search input when locating the operator card. Default = `operatorName` from the script. |
+| `formFieldLabels.<configKey>` | `FormControllerBuilder.labelCandidates` | Prepended as highest-priority candidate label for that field, ahead of metadata titles and the pretty-printed key. |
+| `runButtonSelector` | `ExecutionControllerBuilder.runButton` | OR'd into the locator selector as `"$hint, #run-button"` so a bad hint cannot remove the `#run-button` fallback. |
+
+Lookup is keyed on the **canonical** `operatorType` (e.g. `SklearnLinearRegression`), not the friendly `operatorName`. This is set on `ControllerContext.currentOperatorType` defensively at the start of every scenario in `VideoRunner.runScenario` (so hints apply even if a script skips `insertViaDrag`), with `insertViaDrag` redundantly reinforcing it when called.
+
+`_controllerHints` is registered in `OperatorFieldValues.metaKeys` and `OperatorFieldValuesValidator.metaKeys`, so the form-fill path strips it before iterating UI fields and the schema validator ignores it instead of rejecting it as an unknown key.
+
+The LLM prompt explicitly enumerates the three hint paths and the trigger conditions under which it should consider patching them (e.g. "Cannot find operator source" → `operatorSidebarText`, "Field not found: <key>" → `formFieldLabels/<key>`). The model is told to use a hint **only** when a value-level fix won't address the symptom.
+
+### Failure-Detection Hardening (related to AutoFix)
+
+For the agent to do useful work, the upstream scenario has to actually **report** a failure when one happens. Earlier the scenario code had several silent-pass paths that masked real Texera-side errors as "success" — defeating the entire retry loop. The current state:
+
+| Path | Old behavior | New behavior |
+|---|---|---|
+| `runWorkflowAndWait` hits `timeoutMs` with button still on `Pause` | `println` + `return` (silent success) | Throws `RuntimeException("Workflow execution did not finish within …ms…")` — agent can see the operator is stuck and propose smaller-data / fewer-features patches. |
+| Default `timeoutMs` | 120s | 240s — fewer false negatives from legitimately slow workflows; the new throw above provides the safety net for genuinely stuck runs. |
+| Compilation error visible (`Static Error` / `COMPILATION_ERROR` text on page) | Logged and returned silently | Throws `RuntimeException("Workflow compilation error: <message>")` with the extracted text. |
+| Result panel opens with no frames (`<h4>No results available to display.</h4>`) | Not checked | `assertPanelHasContent` throws — workflow ran but produced no output. |
+| Result panel opens with `texera-error-frame` content | Not checked | `assertPanelHasContent` throws — surfaces the first error-message text into the exception. |
+
+These selectors are derived from real Texera frontend templates (`result-panel.component.html`, `error-frame.component.html`); earlier drafts used invented class names and have been corrected.
+
+### Group-Level Run Report
+
+`VideoGeneratorMain` prints a structured report at the end of an `--auto-fix` run that breaks results into three buckets:
+
+```
+══════════════════════════════════════════════════════════════════════
+  AutoFix Run Report
+══════════════════════════════════════════════════════════════════════
+  group:   Sklearn
+  total:   28
+  ✓ succeeded: 25    ✗ failed: 3
+──────────────────────────────────────────────────────────────────────
+  ✗ Failed:
+    - Sklearn Prediction                       (3/3 attempts)  TimeoutError: …
+  ──────────────────────────────────────────────────────────────────
+  ✓ Succeeded on attempt 1: 23
+  ──────────────────────────────────────────────────────────────────
+  ✓ Succeeded after LLM patch:
+    - Gradient Boosting                        (2 attempts, 1 patch)
+══════════════════════════════════════════════════════════════════════
+```
+
+The "Succeeded after LLM patch" bucket is the key metric for whether the agent is actually earning its keep, vs. the runs that would have passed without it.
+
+### Limitations / Open Questions (WIP)
+
+1. **API key plumbing.** `LLMPatchProposer` reads `ANTHROPIC_API_KEY` from `sys.env`. Setting it only in an interactive shell isn't enough — `sbt` started from a non-inheriting parent (e.g. via Claude Code's Bash tool) won't see it. Persist in `~/.zshrc` / equivalent.
+
+2. **Detection is conservative.** `assertPanelHasContent` only fires on **explicit** empty-state / error-frame signals. An operator whose chart silently renders garbage (wrong x-axis, empty bars but the SVG is non-empty) will still be marked success. Adding a positive check (e.g., "table must have ≥1 row" or "chart must have non-empty data binding") is on the list, but each operator's UI differs, so we want examples of false positives first.
+
+3. **Structural failures are out of scope.** `SklearnPrediction` / `SklearnTesting` need an upstream `SklearnTraining*` operator to produce a `model` column; the current `sample_ML.json` template can't supply it. No value-level patch will fix this, and the agent currently can't add operators to the template either. Either treat as runtime-skip-list, or build a `sample_ML_with_training.json`.
+
+4. **`PlaywrightConfigProbe` is a placeholder.** Eventually the idea is for the agent to **read** UI state (visible labels on the page, sidebar contents) as part of the failure context, not just static schema. Not implemented yet.
+
+5. **Prompt drift.** The `_controllerHints` path names are hardcoded in `LLMPatchProposer.systemPrompt`. Adding new hints requires syncing both the controller wiring and the prompt — easy to forget. Consider extracting a hint registry.
+
+6. **Single-pass design.** A two-pass workflow ("run the whole group, collect real failures, second pass: only retry those with the agent") would amortize the cost of slow first-pass runs and isolate agent-driven changes for review. There is no `--retry-from=unfixed.json` flag yet.
+
+---
+
+## 13. TODO
 
 1. **SklearnPrediction / SklearnTesting need a training-operator template** — both expect a `model` column (binary blob from SklearnTraining* upstream). The `sample_ML.json` template has no training operator, so these always fail at runtime.
 

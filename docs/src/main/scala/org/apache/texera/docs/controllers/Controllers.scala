@@ -5,6 +5,7 @@ import com.microsoft.playwright._
 import com.microsoft.playwright.options.{AriaRole, LoadState, WaitForSelectorState, WaitUntilState}
 import org.apache.texera.amber.operator.metadata.{GroupInfo, OperatorGroupConstants, OperatorMetadataGenerator}
 import org.apache.texera.docs.config.TestDataConfig
+import org.apache.texera.docs.scripts.OperatorFieldValues
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -724,10 +725,33 @@ class LoginControllerBuilder(ctx: ControllerContext)
           loginSubmit.first().waitFor(
             new Locator.WaitForOptions()
               .setState(WaitForSelectorState.VISIBLE)
-              .setTimeout(Timeouts.Medium)
+              .setTimeout(Timeouts.Long)
           )
         } catch {
           case _: Exception =>
+            val title = try page.title() catch { case _: Exception => "<no title>" }
+            val localLoginCount = page.locator("texera-local-login").count()
+            val anyInputCount = page.locator("input").count()
+            val signInBtnCount = page.locator("button:has-text('Sign in')").count()
+            val aboutTitleCount = page.locator("h1.about-title").count()
+            val bodyText = try {
+              val raw = page.locator("body").innerText()
+              if (raw.length > 400) raw.substring(0, 400) + "..." else raw
+            } catch { case _: Exception => "<no body>" }
+            val shotPath = java.nio.file.Paths.get(
+              TestDataConfig.videoOutputDir, "debug_login_failed.png"
+            )
+            val screenshotSaved =
+              try {
+                java.nio.file.Files.createDirectories(shotPath.getParent)
+                page.screenshot(new Page.ScreenshotOptions().setPath(shotPath).setFullPage(true))
+                true
+              } catch { case _: Exception => false }
+            println(s"[Login][debug] title=$title")
+            println(s"[Login][debug] texera-local-login count=$localLoginCount, input count=$anyInputCount, signIn btn count=$signInBtnCount, about-title count=$aboutTitleCount")
+            println(s"[Login][debug] body text (first 400 chars): $bodyText")
+            if (screenshotSaved) println(s"[Login][debug] screenshot saved: $shotPath")
+            else println(s"[Login][debug] screenshot capture failed (target: $shotPath)")
             throw new RuntimeException(s"Login page not visible. URL: ${page.url()}")
         }
       }
@@ -1080,6 +1104,13 @@ class OperatorControllerBuilder(ctx: ControllerContext)
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
       ctx.ensureFakeCursor()
+      // Record current operator for downstream builders' hint lookups.
+      operatorType.filter(_.nonEmpty).foreach(t => ctx.currentOperatorType = Some(t))
+
+      // Operator search text override from _controllerHints.operatorSidebarText.
+      val sidebarSearchText: String = operatorType
+        .flatMap(OperatorFieldValues.operatorSidebarText)
+        .getOrElse(operatorName)
 
       // ── Open operator panel & resolve source ──
       val operatorsMenu = page.getByTestId("operator-left-panel-operators-button")
@@ -1120,9 +1151,9 @@ class OperatorControllerBuilder(ctx: ControllerContext)
           .or(page.getByPlaceholder("search operator")).first()
         Utils.waitVisible(searchInput)
         Utils.clickWithCursor(page, searchInput)
-        searchInput.fill(operatorName)
+        searchInput.fill(sidebarSearchText)
         page.waitForTimeout(Delays.Settle)
-        dragHandle(resolveOperatorSource(page, operatorName, operatorType))
+        dragHandle(resolveOperatorSource(page, sidebarSearchText, operatorType))
       }
       operator.scrollIntoViewIfNeeded()
       page.waitForTimeout(Delays.Tick)
@@ -1176,7 +1207,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         Utils.clickWithCursor(page, searchInput)
         searchInput.fill("")
         page.waitForTimeout(Delays.Tick)
-        val retryOperator = dragHandle(resolveOperatorSource(page, operatorName, operatorType))
+        val retryOperator = dragHandle(resolveOperatorSource(page, sidebarSearchText, operatorType))
         performDrag(page, retryOperator, tgtX, tgtY)
       }
       if (!waitForNodeCountAtLeast(page, targetCount, maxRetries = 20)) {
@@ -1187,7 +1218,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
         Utils.clickWithCursor(page, searchInput)
         searchInput.fill("")
         page.waitForTimeout(Delays.Tick)
-        searchInput.fill(operatorName)
+        searchInput.fill(sidebarSearchText)
         page.waitForTimeout(Delays.Tick)
         searchInput.press("Enter")
       }
@@ -1978,8 +2009,15 @@ class FormControllerBuilder(ctx: ControllerContext)
       case _ => Seq.empty
     }
 
-    // Metadata titles first (most authoritative), then pretty-printed fallback
-    (metadataTitles ++ fallbackAliases :+ pretty).map(_.trim).filter(_.nonEmpty).distinct
+    // Per-operator override from _controllerHints.formFieldLabels takes priority
+    // when present — lets the auto-fix agent patch a specific field's UI label
+    // without changing the canonical metadata lookup.
+    val hintOverride: Seq[String] = context.currentOperatorType
+      .flatMap(t => OperatorFieldValues.formFieldLabelOverride(t, fieldKey))
+      .toSeq
+
+    (hintOverride ++ metadataTitles ++ fallbackAliases :+ pretty)
+      .map(_.trim).filter(_.nonEmpty).distinct
   }
 
   private def propertyEditorRoot(page: Page): Locator = {
@@ -2616,8 +2654,17 @@ class FormControllerBuilder(ctx: ControllerContext)
 class ExecutionControllerBuilder(ctx: ControllerContext)
   extends ControllerBuilder(ctx) {
 
-  private def runButton(page: Page): Locator =
-    page.locator("#run-button").first()
+  private def runButton(page: Page): Locator = {
+    // Per-operator hint, if any, is OR'd into the locator selector so we don't
+    // have to time the `count()` check against async UI render — downstream
+    // waitVisible handles the wait. The default `#run-button` is always part
+    // of the selector, so a bad hint cannot remove the fallback.
+    val selector = context.currentOperatorType
+      .flatMap(OperatorFieldValues.runButtonSelector)
+      .map(hint => s"$hint, #run-button")
+      .getOrElse("#run-button")
+    page.locator(selector).first()
+  }
 
   private def buttonText(button: Locator): String = {
     try Option(button.innerText()).getOrElse("").replaceAll("\\s+", " ").trim
@@ -2829,7 +2876,7 @@ class ExecutionControllerBuilder(ctx: ControllerContext)
     }
   })
 
-  def runWorkflowAndWait(timeoutMs: Int = 120000): this.type = addStep(new ControllerStep {
+  def runWorkflowAndWait(timeoutMs: Int = 240000): this.type = addStep(new ControllerStep {
     override def name = "Run Workflow And Wait"
     override def run(ctx: ControllerContext): Unit = {
       val page = ctx.page
@@ -2911,13 +2958,15 @@ class ExecutionControllerBuilder(ctx: ControllerContext)
       }
 
       val finalText = buttonText(btn)
-      if (finalText.equalsIgnoreCase(RunButtonStates.Pause)) {
-        // Some workflows keep the button in "Pause" longer even when result panes are already renderable.
-        // Continue and let openResultPanel/result checks decide readiness.
-        println(s"[Execution] Timeout reached with run button='$finalText'; continue to result checks.")
-        return
-      }
-      throw new RuntimeException(s"Workflow execution did not finish within ${timeoutMs}ms. Run button text='$finalText'")
+      // Used to silently return when the button was still 'Pause' (workflow still
+      // running at timeout). That masked operators whose workflows never actually
+      // completed — the demo video saved was for an in-progress, empty result.
+      // Now we surface this as a hard failure so AutoFix's LLM gets a chance to
+      // propose a config patch (different column, smaller degree, countVectorizer
+      // toggle, etc.) instead of being silently bypassed.
+      throw new RuntimeException(
+        s"Workflow execution did not finish within ${timeoutMs}ms. Run button text='$finalText'."
+      )
     }
   })
 
@@ -2977,6 +3026,7 @@ class ExecutionControllerBuilder(ctx: ControllerContext)
       if (panelVisible) {
         normalizeResultCaptureArea(page)
         expandResultPanel(page)
+        assertPanelHasContent(page)
         return
       }
 
@@ -3018,21 +3068,73 @@ class ExecutionControllerBuilder(ctx: ControllerContext)
         if (panelVisible) {
           normalizeResultCaptureArea(page)
           expandResultPanel(page)
+          assertPanelHasContent(page)
           return
         }
         if (hasCompilationErrorVisible) {
-          println("[Execution] Result panel not opened, but compilation error is visible; continue.")
-          return
+          // Surface the compilation error as a hard failure so AutoFix's LLM gets
+          // a chance to patch the offending column / type. Previously this returned
+          // silently and the saved video was just an error banner.
+          val msg = readVisibleText(staticError).orElse(readVisibleText(compilationError)).getOrElse("compilation error")
+          throw new RuntimeException(s"Workflow compilation error: $msg")
         }
         page.waitForTimeout(Delays.Settle)
       }
 
       if (hasCompilationErrorVisible) {
-        println("[Execution] Result panel not opened within timeout, but compilation error is visible; continue.")
-        return
+        val msg = readVisibleText(staticError).orElse(readVisibleText(compilationError)).getOrElse("compilation error")
+        throw new RuntimeException(s"Workflow compilation error: $msg")
       }
 
       throw new RuntimeException("Result panel did not open in time.")
     }
   })
+
+  private def readVisibleText(loc: Locator): Option[String] =
+    try {
+      if (loc.count() > 0 && loc.isVisible()) Option(loc.innerText()).map(_.trim).filter(_.nonEmpty)
+      else None
+    } catch { case _: Exception => None }
+
+  // Sanity check the result panel actually rendered something. Catches the case
+  // where openResultPanel succeeded structurally (panel is visible) but Texera's
+  // workflow execution produced no output — leaving an empty/loading/error pane.
+  //
+  // Selectors are derived from frontend/.../result-panel.component.html:
+  //   - empty:   `frameComponentConfigs.size === 0` → renders `<h4>No results
+  //              available to display.</h4>` inside the tab content.
+  //   - error:   workflow runtime errors are surfaced via the `texera-error-frame`
+  //              component, whose `.error-message` paragraphs carry the detail text.
+  //
+  // Conservative: only fails on clear no-result / explicit-error signals; absence
+  // of these is treated as "panel has content" rather than diving into operator-
+  // specific positive checks (table rows / chart svg).
+  private def assertPanelHasContent(page: Page): Unit = {
+    val content = page.locator("#result-container #content").first()
+    if (content.count() == 0) return
+
+    // Result frames mount asynchronously; give them a brief moment.
+    page.waitForTimeout(Delays.Settle)
+
+    val emptyHeading = content.getByText("No results available to display", new Locator.GetByTextOptions().setExact(false)).first()
+    val emptyVisible =
+      try emptyHeading.count() > 0 && emptyHeading.isVisible()
+      catch { case _: Exception => false }
+    if (emptyVisible) {
+      throw new RuntimeException("Result panel rendered 'No results available to display'; workflow produced no output frames.")
+    }
+
+    val errorMessages = content.locator("texera-error-frame .error-message")
+    val errCount =
+      try errorMessages.count()
+      catch { case _: Exception => 0 }
+    if (errCount > 0) {
+      val firstMsg =
+        try Option(errorMessages.first().innerText()).map(_.trim).filter(_.nonEmpty)
+        catch { case _: Exception => None }
+      throw new RuntimeException(
+        s"Result panel surfaced workflow error(s) via texera-error-frame: ${firstMsg.getOrElse("<no text>")}"
+      )
+    }
+  }
 }

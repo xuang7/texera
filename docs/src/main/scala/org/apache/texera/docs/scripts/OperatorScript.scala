@@ -23,6 +23,7 @@ import org.apache.texera.docs.controllers.ControllerContext
 
 trait OperatorScript {
   def operatorName: String
+  def operatorType: String = operatorName.replaceAll("\\s+", "")
   def category: String
   def outputFileName: String
 
