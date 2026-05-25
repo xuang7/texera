@@ -33,6 +33,32 @@
         <span>Create Dataset</span>
       </button>
       <texera-filters #filters></texera-filters>
+      <div class="view-toggle">
+        <button
+          nz-button
+          nzType="text"
+          [class.active]="viewMode === 'list'"
+          (click)="setViewMode('list')"
+          nz-tooltip="List view"
+          title="List view">
+          <i
+            nz-icon
+            nzType="bars"
+            nzTheme="outline"></i>
+        </button>
+        <button
+          nz-button
+          nzType="text"
+          [class.active]="viewMode === 'card'"
+          (click)="setViewMode('card')"
+          nz-tooltip="Card view"
+          title="Card view">
+          <i
+            nz-icon
+            nzType="picture"
+            nzTheme="outline"></i>
+        </button>
+      </div>
     </div>
   </nz-card>
 
@@ -55,6 +81,7 @@
   <texera-search-results
     [editable]="true"
     [isPrivateSearch]="true"
+    [viewMode]="viewMode"
     (deleted)="deleteDataset($event)"
     (refresh)="ngAfterViewInit()"
     [currentUid]="currentUid"></texera-search-results>

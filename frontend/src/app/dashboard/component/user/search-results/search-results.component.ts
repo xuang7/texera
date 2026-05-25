@@ -25,12 +25,14 @@ import { ɵɵCdkVirtualScrollViewport, ɵɵCdkFixedSizeVirtualScroll } from "@an
 import { NzListComponent } from "ng-zorro-antd/list";
 import { NgFor, NgIf } from "@angular/common";
 import { ListItemComponent } from "../list-item/list-item.component";
+import { UserDatasetCardItemComponent } from "../user-dataset/user-dataset-card-item/user-dataset-card-item.component";
 import { NzSpaceCompactItemDirective } from "ng-zorro-antd/space";
 import { NzButtonComponent } from "ng-zorro-antd/button";
 import { NzWaveDirective } from "ng-zorro-antd/core/wave";
 import { ɵNzTransitionPatchDirective } from "ng-zorro-antd/core/transition-patch";
 
 export type LoadMoreFunction = (start: number, count: number) => Promise<{ entries: DashboardEntry[]; more: boolean }>;
+export type SearchResultsViewMode = "list" | "card";
 
 @Component({
   selector: "texera-search-results",
@@ -43,6 +45,7 @@ export type LoadMoreFunction = (start: number, count: number) => Promise<{ entri
     NzListComponent,
     NgFor,
     ListItemComponent,
+    UserDatasetCardItemComponent,
     NgIf,
     NzSpaceCompactItemDirective,
     NzButtonComponent,
@@ -62,6 +65,9 @@ export class SearchResultsComponent {
   @Input() editable = false;
   @Input() searchKeywords: string[] = [];
   @Input() currentUid: number | undefined;
+  @Input() viewMode: SearchResultsViewMode = "list";
+
+  trackByEntryId = (_: number, entry: DashboardEntry): string => `${entry.type}-${entry.id}`;
   @Output() deleted = new EventEmitter<DashboardEntry>();
   @Output() duplicated = new EventEmitter<DashboardEntry>();
   @Output() modified = new EventEmitter<DashboardEntry>();

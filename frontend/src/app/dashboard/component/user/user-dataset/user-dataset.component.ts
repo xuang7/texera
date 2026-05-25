@@ -43,6 +43,15 @@ import { NzIconDirective } from "ng-zorro-antd/icon";
 import { FiltersInstructionsComponent } from "../filters-instructions/filters-instructions.component";
 import { NzSelectComponent } from "ng-zorro-antd/select";
 import { FormsModule } from "@angular/forms";
+import { NzTooltipModule } from "ng-zorro-antd/tooltip";
+
+export type ViewMode = "list" | "card";
+export const DATASET_VIEW_MODE_STORAGE_KEY = "texera.dataset.viewMode";
+
+/** Read the persisted view mode, falling back to "list" if absent or invalid. */
+export function readStoredDatasetViewMode(): ViewMode {
+  return localStorage.getItem(DATASET_VIEW_MODE_STORAGE_KEY) === "card" ? "card" : "list";
+}
 
 @UntilDestroy()
 @Component({
@@ -56,6 +65,7 @@ import { FormsModule } from "@angular/forms";
     NzWaveDirective,
     ɵNzTransitionPatchDirective,
     NzIconDirective,
+    NzTooltipModule,
     FiltersComponent,
     FiltersInstructionsComponent,
     NzSelectComponent,
@@ -69,6 +79,13 @@ export class UserDatasetComponent implements AfterViewInit {
   public isLogin = this.userService.isLogin();
   public currentUid = this.userService.getCurrentUser()?.uid;
   public hasMismatch = false; // Display warning when there are mismatched datasets
+  public viewMode: ViewMode = readStoredDatasetViewMode();
+
+  setViewMode(mode: ViewMode): void {
+    if (this.viewMode === mode) return;
+    this.viewMode = mode;
+    localStorage.setItem(DATASET_VIEW_MODE_STORAGE_KEY, mode);
+  }
 
   private _searchResultsComponent?: SearchResultsComponent;
   @ViewChild(SearchResultsComponent) get searchResultsComponent(): SearchResultsComponent {

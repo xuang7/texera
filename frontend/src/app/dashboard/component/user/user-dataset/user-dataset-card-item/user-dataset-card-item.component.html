@@ -1,0 +1,139 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
+<nz-card
+  nzHoverable
+  class="dataset-card"
+  [nzCover]="coverTpl"
+  [routerLink]="entryLink">
+  <div class="dataset-card-body-link">
+    <div class="card-title-row">
+      <span
+        class="card-title"
+        [title]="entry.name">
+        {{ entry.name }}
+      </span>
+      <button
+        *ngIf="editable"
+        class="more-btn"
+        nz-dropdown
+        nzTrigger="click"
+        nzPlacement="bottomRight"
+        [nzDropdownMenu]="cardActionsMenu"
+        (click)="$event.stopPropagation(); $event.preventDefault()"
+        nz-tooltip="More actions">
+        <i
+          nz-icon
+          nzType="more"
+          nzTheme="outline"></i>
+      </button>
+    </div>
+
+    <div class="card-meta">
+      <div class="meta-line meta-line--owner">
+        <span class="meta-owner">
+          <texera-user-avatar
+            class="meta-avatar"
+            [googleAvatar]="entry.ownerGoogleAvatar"
+            userColor="#1E90FF"
+            [userName]="entry.ownerName || entry.ownerEmail || 'User'"
+            [isOwner]="entry.ownerId === currentUid">
+          </texera-user-avatar>
+          <span
+            class="meta-owner-name truncate-single-line"
+            [title]="entry.ownerName || entry.ownerEmail">
+            {{ entry.ownerName || entry.ownerEmail || 'Unknown' }}
+          </span>
+        </span>
+      </div>
+      <div class="meta-line meta-line--stats">
+        <span class="meta-updated">Updated {{ formatRelativeTime(entry.lastModifiedTime) }}</span>
+        <span class="meta-size">{{ formatSize(entry.size) }}</span>
+      </div>
+      <div class="meta-line meta-line--activity">
+        <span class="meta-views">{{ formatCount(viewCount) }} views</span>
+        <span
+          class="meta-stat--like"
+          [class.liked]="isLiked"
+          [class.disabled]="!currentUid"
+          (click)="$event.stopPropagation(); $event.preventDefault(); currentUid && toggleLike()">
+          <i
+            nz-icon
+            nzType="heart"
+            [nzTheme]="isLiked ? 'fill' : 'outline'"></i>
+          {{ formatCount(likeCount) }}
+        </span>
+      </div>
+    </div>
+  </div>
+</nz-card>
+
+<ng-template #coverTpl>
+  <div class="cover-container">
+    <img
+      class="cover-image"
+      [src]="coverImageSrc"
+      (error)="onCoverError($event)"
+      loading="lazy"
+      decoding="async"
+      alt="dataset cover" />
+    <span class="cover-id-badge">#{{ entry.id }}</span>
+  </div>
+</ng-template>
+
+<nz-dropdown-menu #cardActionsMenu="nzDropdownMenu">
+  <ul
+    nz-menu
+    class="dataset-card-actions-menu">
+    <li
+      nz-menu-item
+      (click)="onClickOpenShareAccess()">
+      <i
+        nz-icon
+        nzType="share-alt"
+        nzTheme="outline"></i>
+      Share
+    </li>
+    <li
+      nz-menu-item
+      (click)="onClickDownload()">
+      <i
+        nz-icon
+        nzType="cloud-download"
+        nzTheme="outline"></i>
+      Download
+    </li>
+    <li
+      *ngIf="editable"
+      nz-menu-item
+      nzDanger
+      [nzDisabled]="!canDelete"
+      nz-popconfirm
+      nzPopconfirmTitle="Confirm to delete this dataset."
+      nzOkText="Delete"
+      nzOkDanger
+      (nzOnConfirm)="deleted.emit()">
+      <i
+        nz-icon
+        nzType="delete"
+        nzTheme="outline"></i>
+      Delete
+    </li>
+  </ul>
+</nz-dropdown-menu>
