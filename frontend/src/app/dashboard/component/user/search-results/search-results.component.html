@@ -52,18 +52,15 @@
     </cdk-virtual-scroll-viewport>
   </ng-container>
 
-  <!-- CARD VIEW (dataset only) -->
-  <ng-container *ngIf="viewMode === 'card'">
+  <!-- CARD VIEW -->
+  <ng-container *ngIf="viewMode === 'card' && cardTemplate">
     <div class="card-scroll-container">
       <div class="card-grid">
-        <texera-dataset-card-item
+        <ng-container
           *ngFor="let entry of entries; trackBy: trackByEntryId"
-          [entry]="entry"
-          [editable]="editable"
-          [currentUid]="currentUid"
-          (deleted)="deleted.emit(entry)"
-          (refresh)="refresh.emit()">
-        </texera-dataset-card-item>
+          [ngTemplateOutlet]="cardTemplate"
+          [ngTemplateOutletContext]="{ $implicit: entry }">
+        </ng-container>
       </div>
       <div class="load-more">
         <button

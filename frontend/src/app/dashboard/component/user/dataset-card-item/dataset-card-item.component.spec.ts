@@ -25,15 +25,17 @@ import { RouterTestingModule } from "@angular/router/testing";
 import { of } from "rxjs";
 import type { Mocked } from "vitest";
 
-import { UserDatasetCardItemComponent } from "./user-dataset-card-item.component";
+import { DatasetCardItemComponent } from "./dataset-card-item.component";
 import { DashboardEntry } from "src/app/dashboard/type/dashboard-entry";
-import { DashboardEntryActionsService } from "../../../../service/user/dashboard-entry-actions.service";
-import { HubService } from "../../../../../hub/service/hub.service";
-import { UserService } from "../../../../../common/service/user/user.service";
-import { StubUserService } from "../../../../../common/service/user/stub-user.service";
-import { AppSettings } from "../../../../../common/app-setting";
-import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../../app-routing.constant";
-import { commonTestProviders } from "../../../../../common/testing/test-utils";
+import { NzModalService } from "ng-zorro-antd/modal";
+import { DatasetService } from "../../../service/user/dataset/dataset.service";
+import { DownloadService } from "../../../service/user/download/download.service";
+import { HubService } from "../../../../hub/service/hub.service";
+import { UserService } from "../../../../common/service/user/user.service";
+import { StubUserService } from "../../../../common/service/user/stub-user.service";
+import { AppSettings } from "../../../../common/app-setting";
+import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../app-routing.constant";
+import { commonTestProviders } from "../../../../common/testing/test-utils";
 
 function makeDatasetEntry(overrides: Partial<any> = {}): DashboardEntry {
   // Only includes fields read by the component's logic; template fields are skipped
@@ -48,24 +50,22 @@ function makeDatasetEntry(overrides: Partial<any> = {}): DashboardEntry {
   } as unknown as DashboardEntry;
 }
 
-describe("UserDatasetCardItemComponent", () => {
-  let component: UserDatasetCardItemComponent;
-  let fixture: ComponentFixture<UserDatasetCardItemComponent>;
+describe("DatasetCardItemComponent", () => {
+  let component: DatasetCardItemComponent;
+  let fixture: ComponentFixture<DatasetCardItemComponent>;
   let hubService: Mocked<HubService>;
 
   beforeEach(async () => {
-    const entryActionsSpy = {
-      openShareAccess: vi.fn().mockResolvedValue(undefined),
-      download: vi.fn(),
-    };
     const hubServiceSpy = {
       toggleLike: vi.fn().mockReturnValue(of({ liked: true, likeCount: 7 })),
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserDatasetCardItemComponent, HttpClientTestingModule, BrowserAnimationsModule, RouterTestingModule],
+      imports: [DatasetCardItemComponent, HttpClientTestingModule, BrowserAnimationsModule, RouterTestingModule],
       providers: [
-        { provide: DashboardEntryActionsService, useValue: entryActionsSpy },
+        { provide: NzModalService, useValue: { create: vi.fn() } },
+        { provide: DatasetService, useValue: { retrieveOwners: vi.fn().mockReturnValue(of([])) } },
+        { provide: DownloadService, useValue: { downloadDataset: vi.fn().mockReturnValue(of(new Blob())) } },
         { provide: HubService, useValue: hubServiceSpy },
         { provide: UserService, useClass: StubUserService },
         ...commonTestProviders,
@@ -73,7 +73,7 @@ describe("UserDatasetCardItemComponent", () => {
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(UserDatasetCardItemComponent);
+    fixture = TestBed.createComponent(DatasetCardItemComponent);
     component = fixture.componentInstance;
     hubService = TestBed.inject(HubService) as unknown as Mocked<HubService>;
   });

@@ -55,7 +55,7 @@
     font-size: 12px;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(15, 14, 12, 0.72);
     color: white;
   }
 }
@@ -109,8 +109,7 @@
   flex-direction: column;
   gap: 5px;
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  padding-top: 4px;
   min-width: 0;
 
   .meta-line {
@@ -127,7 +126,6 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        flex: 1;
         min-width: 0;
       }
 
@@ -144,38 +142,82 @@
           font-size: 9px;
         }
       }
+
+      .meta-dot {
+        flex-shrink: 0;
+        color: #bfbfbf;
+        font-size: 13px;
+        line-height: 1;
+        user-select: none;
+      }
+
+      .meta-updated {
+        flex-shrink: 0;
+        font-size: 12px;
+        color: #8c8c8c;
+        white-space: nowrap;
+      }
     }
 
-    &--stats,
-    &--activity {
+    &--stats {
       justify-content: space-between;
       font-size: 12px;
       color: #8c8c8c;
     }
 
-    &--stats .meta-size {
-      white-space: nowrap;
-    }
-
-    .meta-stat--like {
+    .meta-stat {
       display: inline-flex;
       align-items: center;
       gap: 4px;
       flex-shrink: 0;
-      cursor: pointer;
+      white-space: nowrap;
 
       i {
         font-size: 12px;
       }
+    }
 
-      &.liked,
+    .meta-stat--like {
+      padding: 0 10px;
+      border: 1px solid #e8e8e8;
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      font-size: 12px;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+
+      i {
+        font-size: 11px;
+        transition: color 0.15s;
+      }
+
+      &.liked i,
+      &:not(.disabled):not(.liked):hover i {
+        color: #e0506e;
+      }
+
       &:not(.disabled):hover {
-        color: #ff4d4f;
+        border-color: #e0506e;
       }
 
       &.disabled {
         cursor: default;
       }
     }
+  }
+
+  .meta-stats-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .meta-hr {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 2px 0;
   }
 }

@@ -17,15 +17,14 @@
  * under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, TemplateRef } from "@angular/core";
 import { DashboardEntry } from "../../../type/dashboard-entry";
 import { UserService } from "../../../../common/service/user/user.service";
 import { NzCardComponent } from "ng-zorro-antd/card";
 import { ɵɵCdkVirtualScrollViewport, ɵɵCdkFixedSizeVirtualScroll } from "@angular/cdk/overlay";
 import { NzListComponent } from "ng-zorro-antd/list";
-import { NgFor, NgIf } from "@angular/common";
+import { NgFor, NgIf, NgTemplateOutlet } from "@angular/common";
 import { ListItemComponent } from "../list-item/list-item.component";
-import { UserDatasetCardItemComponent } from "../user-dataset/user-dataset-card-item/user-dataset-card-item.component";
 import { NzSpaceCompactItemDirective } from "ng-zorro-antd/space";
 import { NzButtonComponent } from "ng-zorro-antd/button";
 import { NzWaveDirective } from "ng-zorro-antd/core/wave";
@@ -45,8 +44,8 @@ export type SearchResultsViewMode = "list" | "card";
     NzListComponent,
     NgFor,
     ListItemComponent,
-    UserDatasetCardItemComponent,
     NgIf,
+    NgTemplateOutlet,
     NzSpaceCompactItemDirective,
     NzButtonComponent,
     NzWaveDirective,
@@ -66,6 +65,8 @@ export class SearchResultsComponent {
   @Input() searchKeywords: string[] = [];
   @Input() currentUid: number | undefined;
   @Input() viewMode: SearchResultsViewMode = "list";
+  /** Template rendered for each entry in card mode; receives the entry via $implicit. */
+  @Input() cardTemplate?: TemplateRef<{ $implicit: DashboardEntry }>;
 
   trackByEntryId = (_: number, entry: DashboardEntry): string => `${entry.type}-${entry.id}`;
   @Output() deleted = new EventEmitter<DashboardEntry>();

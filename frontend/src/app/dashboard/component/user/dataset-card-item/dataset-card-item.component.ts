@@ -36,21 +36,25 @@ import { NzPopconfirmDirective } from "ng-zorro-antd/popconfirm";
 import { NzTooltipModule } from "ng-zorro-antd/tooltip";
 import { NzDropdownDirective, NzDropdownMenuComponent } from "ng-zorro-antd/dropdown";
 import { NzMenuDirective, NzMenuItemComponent } from "ng-zorro-antd/menu";
-import { DashboardEntry } from "../../../../type/dashboard-entry";
-import { UserAvatarComponent } from "../../user-avatar/user-avatar.component";
-import { DashboardEntryActionsService } from "../../../../service/user/dashboard-entry-actions.service";
-import { HubService } from "../../../../../hub/service/hub.service";
-import { AppSettings } from "../../../../../common/app-setting";
-import { formatSize } from "../../../../../common/util/size-formatter.util";
-import { formatCount, formatRelativeTime } from "../../../../../common/util/format.util";
-import { isDefined } from "../../../../../common/util/predicate";
-import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../../app-routing.constant";
+import { NzModalService } from "ng-zorro-antd/modal";
+import { firstValueFrom } from "rxjs";
+import { DashboardEntry } from "../../../type/dashboard-entry";
+import { UserAvatarComponent } from "../user-avatar/user-avatar.component";
+import { ShareAccessComponent } from "../share-access/share-access.component";
+import { DatasetService } from "../../../service/user/dataset/dataset.service";
+import { DownloadService } from "../../../service/user/download/download.service";
+import { HubService } from "../../../../hub/service/hub.service";
+import { AppSettings } from "../../../../common/app-setting";
+import { formatSize } from "../../../../common/util/size-formatter.util";
+import { formatCount, formatRelativeTime } from "../../../../common/util/format.util";
+import { isDefined } from "../../../../common/util/predicate";
+import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../app-routing.constant";
 
 @UntilDestroy()
 @Component({
   selector: "texera-dataset-card-item",
-  templateUrl: "./user-dataset-card-item.component.html",
-  styleUrls: ["./user-dataset-card-item.component.scss"],
+  templateUrl: "./dataset-card-item.component.html",
+  styleUrls: ["./dataset-card-item.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgIf,
@@ -66,23 +70,12 @@ import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../
     UserAvatarComponent,
   ],
 })
-export class UserDatasetCardItemComponent implements OnChanges {
+export class DatasetCardItemComponent implements OnChanges {
   @Input() editable = false;
   @Input() currentUid: number | undefined;
+  @Input() entry!: DashboardEntry;
   @Output() deleted = new EventEmitter<void>();
   @Output() refresh = new EventEmitter<void>();
-
-  private _entry?: DashboardEntry;
-  @Input()
-  get entry(): DashboardEntry {
-    if (!this._entry) {
-      throw new Error("entry property must be provided.");
-    }
-    return this._entry;
-  }
-  set entry(value: DashboardEntry) {
-    this._entry = value;
-  }
 
   entryLink: string[] = [];
   coverImageSrc: string = "";
@@ -92,7 +85,9 @@ export class UserDatasetCardItemComponent implements OnChanges {
   isLiked = false;
 
   constructor(
-    private entryActions: DashboardEntryActionsService,
+    private modalService: NzModalService,
+    private datasetService: DatasetService,
+    private downloadService: DownloadService,
     private hubService: HubService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -130,12 +125,26 @@ export class UserDatasetCardItemComponent implements OnChanges {
   }
 
   public async onClickOpenShareAccess(): Promise<void> {
-    const modal = await this.entryActions.openShareAccess(this.entry);
-    modal?.componentInstance?.refresh.pipe(untilDestroyed(this)).subscribe(() => this.refresh.emit());
+    if (this.entry.type !== "dataset") return;
+    const modal = this.modalService.create({
+      nzContent: ShareAccessComponent,
+      nzData: {
+        writeAccess: this.entry.accessLevel === "WRITE",
+        type: "dataset",
+        id: this.entry.id,
+        allOwners: await firstValueFrom(this.datasetService.retrieveOwners()),
+      },
+      nzFooter: null,
+      nzTitle: "Share this dataset with others",
+      nzCentered: true,
+      nzWidth: "700px",
+    });
+    modal.componentInstance?.refresh.pipe(untilDestroyed(this)).subscribe(() => this.refresh.emit());
   }
 
   public onClickDownload = (): void => {
-    this.entryActions.download(this.entry);
+    if (this.entry.type !== "dataset" || !this.entry.id) return;
+    this.downloadService.downloadDataset(this.entry.id, this.entry.name).subscribe();
   };
 
   toggleLike(): void {
