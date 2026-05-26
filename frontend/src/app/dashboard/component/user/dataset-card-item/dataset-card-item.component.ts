@@ -144,7 +144,7 @@ export class DatasetCardItemComponent implements OnChanges {
 
   public onClickDownload = (): void => {
     if (this.entry.type !== "dataset" || !this.entry.id) return;
-    this.downloadService.downloadDataset(this.entry.id, this.entry.name).subscribe();
+    this.downloadService.downloadDataset(this.entry.id, this.entry.name).pipe(untilDestroyed(this)).subscribe();
   };
 
   toggleLike(): void {

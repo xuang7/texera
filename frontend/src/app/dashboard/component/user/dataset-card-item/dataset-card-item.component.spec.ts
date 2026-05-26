@@ -18,7 +18,6 @@
  */
 
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { NO_ERRORS_SCHEMA } from "@angular/core";
 import { HttpClientTestingModule } from "@angular/common/http/testing";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { RouterTestingModule } from "@angular/router/testing";
@@ -70,7 +69,6 @@ describe("DatasetCardItemComponent", () => {
         { provide: UserService, useClass: StubUserService },
         ...commonTestProviders,
       ],
-      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DatasetCardItemComponent);
