@@ -1098,7 +1098,12 @@ class OperatorControllerBuilder(ctx: ControllerContext)
                      toPortIndex: Int = 0,
                      connectAdditionalFrom: Option[String] = None,
                      connectAdditionalFromPortIndex: Int = 0,
-                     connectAdditionalToInputIndex: Option[Int] = None
+                     connectAdditionalToInputIndex: Option[Int] = None,
+                     // Horizontal gap (screen px) between anchor's right edge and the
+                     // dropped operator's left edge. Default preserves the prior
+                     // visualization / data-cleaning behavior; ML scripts override with
+                     // a tighter value because their template has more intermediate nodes.
+                     dragSpacing: Double = 180.0
                    ): this.type = addStep(new ControllerStep {
     override def name = s"Insert '$operatorName' via Drag${dragNextTo.map(n => s" (next to $n)").getOrElse("")}"
     override def run(ctx: ControllerContext): Unit = {
@@ -1180,9 +1185,8 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       val (tgtX, tgtY) = anchorNode.flatMap { anchor =>
         val box = Utils.cellBox(anchor)
         if (box != null) {
-          val spacing = 180.0
           Some((
-            math.min(canvasBox.x + canvasBox.width - 30, box.x + box.width + spacing),
+            math.min(canvasBox.x + canvasBox.width - 30, box.x + box.width + dragSpacing),
             box.y + box.height / 2.0 + yOffset
           ))
         } else None
@@ -1329,6 +1333,10 @@ class OperatorControllerBuilder(ctx: ControllerContext)
       }
 
       // ── Reposition only for default placement mode.
+      // Fallback reposition when no dragNextTo anchor was given but the canvas
+      // already has nodes (e.g. defensive drop): nudge near the last node with
+      // the original 220px gap. `dragSpacing` only applies to the drag-drop step
+      // above, which is where the script-specified anchor lives.
       if (dragNextTo.isEmpty) {
         val referenceNode = anchorNode
           .filter(_.count() > 0)
@@ -1339,8 +1347,7 @@ class OperatorControllerBuilder(ctx: ControllerContext)
           val refBox = Utils.cellBox(referenceNode)
           val newBox = Utils.cellBox(newNode)
           if (refBox != null && newBox != null) {
-            val spacing = 220.0
-            val targetCenterX = refBox.x + refBox.width + spacing + newBox.width / 2.0
+            val targetCenterX = refBox.x + refBox.width + 220.0 + newBox.width / 2.0
             val targetCenterY = refBox.y + refBox.height / 2.0
             val currentCenterX = newBox.x + newBox.width / 2.0
             val currentCenterY = newBox.y + newBox.height / 2.0
@@ -2420,11 +2427,20 @@ class FormControllerBuilder(ctx: ControllerContext)
         val fieldInRow = resolveFieldInScope(targetRow, subKey)
         val field = if (fieldInRow.count() > 0) fieldInRow else resolveFieldInLatestRow(section, subKey)
 
+        // JSON booleans arrive as "true"/"false" strings; try boolean controls
+        // before tryFillSelect/tryFillText fallbacks to avoid spurious failures
+        // on switch / checkbox sub-fields.
+        val looksBoolean = value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")
         var filled = false
         if (field.count() > 0) {
-          filled =
-            FormHelpers.tryFillSelect(page, field, Some(value), allowFallbackToFirst = false) ||
-              FormHelpers.tryFillText(page, field, value)
+          if (looksBoolean) {
+            filled = FormHelpers.trySetBoolean(page, field, target = value.equalsIgnoreCase("true"))
+          }
+          if (!filled) {
+            filled =
+              FormHelpers.tryFillSelect(page, field, Some(value), allowFallbackToFirst = false) ||
+                FormHelpers.tryFillText(page, field, value)
+          }
         }
 
         // Fallback for repeat rows with a single select control (e.g., "Add attribute" lists).

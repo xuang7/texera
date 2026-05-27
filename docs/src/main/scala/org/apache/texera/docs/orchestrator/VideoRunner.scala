@@ -139,6 +139,9 @@ class VideoRunner {
 
     failure match {
       case Some((ex, stepName)) =>
+        // Drop the failed-run recording — we only keep .webm for successful
+        // runs. The _failure.png screenshot is preserved for debugging.
+        finalVideo.foreach(deleteQuietly)
         val stHead = ex.getStackTrace.take(8).map(_.toString).mkString("\n")
         val rf = RunFailure(
           operatorName = scenario.operatorName,
@@ -153,7 +156,7 @@ class VideoRunner {
           workflowErrorText = workflowError,
           screenshotPath = capturedShot
         )
-        ScenarioResult.Failure(rf, finalVideo)
+        ScenarioResult.Failure(rf, None)
       case None =>
         finalVideo match {
           case Some(p) => ScenarioResult.Success(p)
@@ -175,6 +178,9 @@ class VideoRunner {
         }
     }
   }
+
+  private def deleteQuietly(path: Path): Unit =
+    try Files.deleteIfExists(path) catch { case _: Exception => () }
 
   private def runSteps(ctx: ControllerContext, steps: Seq[ControllerStep]): Option[(Throwable, String)] = {
     steps.foreach { step =>

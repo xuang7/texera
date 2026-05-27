@@ -239,7 +239,7 @@
       "dumbbellEndValue" : "gross",
       "measurementColumnName" : "score",
       "comparedColumnName" : "year",
-      "showLegends" : true
+      "showLegends" : false
     },
     "Dummy" : { },
     "ECDFPlot" : {
@@ -336,7 +336,7 @@
       "normalize" : "density"
     },
     "HuggingFaceIrisLogisticRegression" : {
-      "petalLengthCmAttribute" : "budget",
+      "petalLengthCmAttribute" : "score",
       "petalWidthCmAttribute" : "runtime",
       "prediction class name" : "iris_class",
       "prediction probability name" : "iris_probability"
@@ -360,8 +360,6 @@
       "dataset" : "test2",
       "hierarchy" : [ {
         "attributeName" : "category"
-      }, {
-        "attributeName" : "subcategory"
       } ],
       "value" : "revenue"
     },
@@ -459,8 +457,14 @@
     },
     "PieChart" : {
       "dataset" : "test2",
-      "name" : "task",
-      "value" : "revenue"
+      "name" : "category",
+      "value" : "budget",
+      "_controllerHints" : {
+        "formFieldLabels" : {
+          "value" : "Value Column",
+          "name" : "Name Column"
+        }
+      }
     },
     "PolarChart" : {
       "r" : "score",
@@ -542,20 +546,18 @@
       "regex" : "[Tt]he\\s+"
     },
     "ReservoirSampling" : {
-      "number of item sampled in reservoir sampling" : 1
+      "number of item sampled in reservoir sampling" : 10
     },
     "SVCTrainer" : {
       "groundTruthAttribute" : "rating",
       "Selected Features" : [ "budget", "runtime", "score" ],
-      "paraList" : [ {
-        "parameter" : "C",
-        "parametersSource" : false,
-        "value" : "1.0"
-      }, {
-        "parameter" : "kernel",
-        "parametersSource" : false,
-        "value" : "rbf"
-      } ]
+      "paraList" : [ ],
+      "_controllerHints" : {
+        "formFieldLabels" : {
+          "groundTruthAttribute" : "Ground Truth Attribute Column",
+          "Selected Features" : "Selected Features"
+        }
+      }
     },
     "SVRTrainer" : {
       "groundTruthAttribute" : "score",
@@ -604,7 +606,8 @@
     },
     "SklearnAdaptiveBoosting" : {
       "target" : "rating",
-      "countVectorizer" : false
+      "countVectorizer" : false,
+      "tfidfTransformer" : false
     },
     "SklearnBagging" : {
       "target" : "rating",

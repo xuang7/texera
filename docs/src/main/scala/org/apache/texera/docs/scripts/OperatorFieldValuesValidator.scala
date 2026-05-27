@@ -5,30 +5,16 @@ import org.apache.texera.amber.operator.metadata.OperatorMetadataGenerator
 import org.apache.texera.amber.operator.metadata.OperatorMetadata
 import org.apache.texera.docs.autofix.ValidationIssue
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import scala.jdk.CollectionConverters._
 
 object OperatorFieldValuesValidator {
 
   private val mapper = new ObjectMapper()
-  private val configPath = Paths.get(
-    "docs",
-    "src",
-    "main",
-    "scala",
-    "org",
-    "apache",
-    "texera",
-    "docs",
-    "config",
-    "operator-field-values.json"
-  )
+  private val configPath = OperatorFieldValues.configFile
 
   private def normalize(s: String): String =
     s.replaceAll("[^A-Za-z0-9]", "").toLowerCase
-
-  private val metaKeys: Set[String] = Set("dataset", "_controllerHints")
-  private val defaultDataset = "test1"
 
   private def loadRoot(): JsonNode = mapper.readTree(configPath.toFile)
 
@@ -73,7 +59,7 @@ object OperatorFieldValuesValidator {
     }
 
     val datasetKey = opConfig.path("dataset").asText("")
-    val effectiveDataset = if (datasetKey.nonEmpty) datasetKey else defaultDataset
+    val effectiveDataset = if (datasetKey.nonEmpty) datasetKey else OperatorFieldValues.DefaultDatasetKey
     val datasetTypes = schemas.getOrElse(effectiveDataset, Map.empty[String, String])
     if (!schemas.contains(effectiveDataset) && datasetKey.nonEmpty) {
       issue("", s"dataset='$datasetKey' has no schema in datasets section")
@@ -95,7 +81,7 @@ object OperatorFieldValuesValidator {
 
     val seenProps = scala.collection.mutable.Set.empty[String]
 
-    opConfig.fields().asScala.filterNot(f => metaKeys.contains(f.getKey)).foreach { f =>
+    opConfig.fields().asScala.filterNot(f => OperatorFieldValues.MetaKeys.contains(f.getKey)).foreach { f =>
       val configKey = f.getKey
       val valueNode = f.getValue
       val resolvedProp = keyAliasToProperty.get(normalize(configKey))

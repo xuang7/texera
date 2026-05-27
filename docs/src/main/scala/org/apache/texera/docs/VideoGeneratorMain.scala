@@ -29,9 +29,29 @@ import org.apache.texera.docs.scripts.operators.OperatorScriptRegistry
  */
 object VideoGeneratorMain {
 
-  // Operators that crash or time-out at runtime regardless of args. Listed by
-  // user-friendly name (matches `OperatorScript.operatorName`).
-  private val runtimeSkip: Set[String] = Set.empty[String]
+  // Operators that cannot be demoed under the current sample workflows. They
+  // are always skipped so the pipeline doesn't waste LLM tokens or wall time
+  // trying to "fix" them. Listed by user-friendly name (matches
+  // `OperatorScript.operatorName`); comparison is normalized below.
+  private val runtimeSkip: Set[String] = Set(
+    // database connectors — need real DB credentials
+    "MySQL Source",
+    "PostgreSQL Source",
+    "AsterixDB Source",
+    // external APIs — need real API keys
+    "Reddit Search",
+    "Twitter Search API",
+    "Twitter Full Archive Search API",
+    // ML scoring / prediction ops — need a "prediction" or "model" column from
+    // an upstream training operator. sample_ML.json has no training operator,
+    // so these always fail at runtime. Re-enable once we ship a training
+    // template (README TODO #1).
+    "Machine Learning Scorer",
+    "Sklearn Prediction",
+    "Sklearn Testing",
+    // placeholder operator with no execution semantics
+    "Dummy"
+  ).map(_.toLowerCase.replaceAll("[^a-z0-9]", ""))
 
   def main(args: Array[String]): Unit = {
     println("\n╔════════════════════════════════════════════════════╗")
@@ -72,8 +92,9 @@ object VideoGeneratorMain {
     val scenarios = selected.map(toScenario)
     if (autoFix) {
       println(s"[VideoGenerator] auto-fix enabled, max-attempts=$maxAttempts")
-      val outcomes = new AutoFixOrchestrator(maxAttempts).run(scenarios)
-      printAutoFixReport(outcomes, groupOpt, maxAttempts)
+      val orchestrator = new AutoFixOrchestrator(maxAttempts)
+      val outcomes = orchestrator.run(scenarios)
+      printAutoFixReport(outcomes, orchestrator.stats, groupOpt, maxAttempts)
     } else {
       new VideoRunner().generateVideos(scenarios)
     }
@@ -81,10 +102,12 @@ object VideoGeneratorMain {
   }
 
   // Group-level summary: succeed/fail counts, list of failures with brief reason,
-  // and a breakdown of successes by "attempt 1 vs. needed LLM retry" — the retry
-  // bucket is what tells us whether the agent is doing useful work.
+  // a breakdown of successes by "attempt 1 vs. needed LLM retry" (tells us
+  // whether the agent is doing useful work), failure-class buckets, and run-wide
+  // LLM call / wall-time stats.
   private def printAutoFixReport(
     outcomes: Seq[org.apache.texera.docs.autofix.AutoFixOutcome],
+    stats: org.apache.texera.docs.autofix.AutoFixRunStats,
     groupOpt: Option[String],
     maxAttempts: Int
   ): Unit = {
@@ -134,6 +157,34 @@ object VideoGeneratorMain {
         println(f"    - ${o.operatorName}%-40s (${o.attempts.length + 1} attempts, $patchedSummary)")
       }
     }
+
+    // Failure buckets — group by exception-class root, so a recurring class tells
+    // us which prompt rule isn't landing.
+    if (failed.nonEmpty) {
+      println(line)
+      println("  Failure buckets:")
+      failed
+        .groupBy { o =>
+          o.attempts.lastOption
+            .map(_.failure.runFailure.exceptionClass.split('.').last)
+            .getOrElse("UnknownError")
+        }
+        .toSeq
+        .sortBy(-_._2.size)
+        .foreach { case (cls, ops) => println(f"    $cls%-30s ${ops.size}%3d") }
+    }
+
+    // Run-wide LLM + wall-clock stats from the orchestrator.
+    println(line)
+    val mins = stats.elapsedMsTotal / 60000
+    val secs = (stats.elapsedMsTotal / 1000) % 60
+    val tok = stats.tokenUsageTotal
+    println(f"  LLM calls: ${stats.llmCallsTotal}%4d   transient failures: ${stats.llmFailuresTotal}%2d")
+    println(f"  Tokens:    ${tok.input}%,d in / ${tok.output}%,d out")
+    if (tok.cacheRead > 0 || tok.cacheCreation > 0) {
+      println(f"             cache: ${tok.cacheRead}%,d read / ${tok.cacheCreation}%,d created")
+    }
+    println(f"  Wall time: ${mins}m${secs}%02ds")
 
     println(line)
     println("  Details: docs/generated/unfixed.json")

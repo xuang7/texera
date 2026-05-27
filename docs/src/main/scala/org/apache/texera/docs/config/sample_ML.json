@@ -138,19 +138,19 @@
   ],
   "operatorPositions": {
     "CSVFileScan-operator-c80a68ab-ac78-4d96-8ce7-6d8f4332bad1": {
-      "x": 200,
+      "x": 270,
       "y": 260
     },
     "Projection-operator-31e22d71-e304-42fd-ad21-61a8756213a5": {
-      "x": 370,
+      "x": 420,
       "y": 260
     },
     "PythonUDFV2-operator-dropna-001": {
-      "x": 540,
+      "x": 560,
       "y": 260
     },
     "Split-operator-2141dcc9-13af-408b-b4c7-f22b4ed3992b": {
-      "x": 710,
+      "x": 700,
       "y": 260
     }
   },

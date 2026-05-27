@@ -9,9 +9,16 @@ import scala.jdk.CollectionConverters._
 object OperatorFieldValues {
   private val mapper = new ObjectMapper()
 
-  private val configFile: Path = Paths.get(
+  /** Single source of truth for the config file location. */
+  val configFile: Path = Paths.get(
     "docs", "src", "main", "scala", "org", "apache", "texera", "docs", "config", "operator-field-values.json"
   )
+
+  /** Per-operator keys that describe the config itself, not actual form fields. */
+  val MetaKeys: Set[String] = Set("dataset", "_controllerHints")
+
+  /** Default dataset key used when an operator entry has no `dataset` field. */
+  val DefaultDatasetKey: String = "test1"
 
   @volatile private var cachedRoot: Option[JsonNode] = None
 
@@ -31,11 +38,6 @@ object OperatorFieldValues {
 
   private def operatorNode(operatorType: String): JsonNode =
     loadedRoot.path("operators").path(operatorType)
-
-  // Meta-keys that describe the operator config itself, not actual form fields.
-  // These are stripped before form-fill so the form controller doesn't try to
-  // resolve a non-existent UI field with this name.
-  private val metaKeys: Set[String] = Set("dataset", "_controllerHints")
 
   private def hintsNode(operatorType: String): JsonNode =
     operatorNode(operatorType).path("_controllerHints")
@@ -76,17 +78,17 @@ object OperatorFieldValues {
 
     val entries = node.fields().asScala
       .filter { entry => entry.getValue != null && !entry.getValue.isNull }
-      .filterNot { entry => metaKeys.contains(entry.getKey) }
+      .filterNot { entry => MetaKeys.contains(entry.getKey) }
       .map(entry => entry.getKey -> entry.getValue)
       .toSeq
     ListMap(entries: _*)
   }
 
-  // Returns "test1" / "test2" / ... — defaults to "test1" if not specified.
+  // Returns "test1" / "test2" / ... — defaults to DefaultDatasetKey if not specified.
   def datasetKey(operatorType: String): String = {
     val node = operatorNode(operatorType)
     val ds = node.path("dataset").asText("")
-    if (ds.nonEmpty) ds else "test1"
+    if (ds.nonEmpty) ds else DefaultDatasetKey
   }
 
   // Look up a single string value at the operator-field-values.json level for a

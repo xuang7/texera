@@ -131,15 +131,18 @@ object OperatorScriptGenerator {
         // anchor on Split, port 0 → port 0, and additional Split.output-1 → port 1.
         // No yOffset — drop the operator at the default position right of Split.
         s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
-      } else if (isVisualization || isDataCleaning) {
-        s""", dragNextTo = Some("$AnchorCsv")"""
       } else if (isML && hasMultipleInputs) {
-        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1)"""
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, connectAdditionalFrom = Some("$AnchorSplit"), connectAdditionalFromPortIndex = 1, connectAdditionalToInputIndex = Some(1), dragSpacing = 120.0"""
       } else if (isML) {
-        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true"""
+        s""", dragNextTo = Some("$AnchorSplit"), autoConnectToAnchor = true, dragSpacing = 120.0"""
       } else if (hasNoInputs) {
         ", canvasPosition = (0.30, 0.30)"
-      } else ""
+      } else {
+        // Default for any 1-input operator (visualization, data cleaning,
+        // Search, Utilities, etc.): drop next to the single CSVFileScan anchor
+        // in the template. auto-connect defaults to true in OperatorController.
+        s""", dragNextTo = Some("$AnchorCsv")"""
+      }
     // Operators tagged "dataset": "test2" in operator-field-values.json need a workflow
     // that loads movie_tree.csv (featured-dataset-movie-2/v2). Use sample_tree.json for those.
     val usesTestTreeDataset = OperatorFieldValues.datasetKey(m.operatorType) == "test2"
@@ -155,20 +158,23 @@ object OperatorScriptGenerator {
 
     val navigationBlock =
       if (hasNoInputs) {
+        // Source operators (CSVFileScan, etc.) — empty canvas, no upstream.
         """    new NavigationControllerBuilder(ctx)
           |      .createNewWorkflow()
           |      .cleanWorkflow()
           |      .execute()""".stripMargin
-      } else if (isVisualization || isDataCleaning || isML) {
+      } else {
+        // Any operator with input ports needs an upstream data source. Template
+        // is chosen by group / dataset above: join template for 2-input cleaning,
+        // ML template for ML ops, tree template for test2-tagged ops, otherwise
+        // the default single-CSVFileScan template. This covers visualization,
+        // data cleaning, ML, *and* groups previously dropped into a no-template
+        // branch (Search, Utilities, etc.) which left the canvas without an
+        // upstream and made every run fail.
         s"""    new NavigationControllerBuilder(ctx)
            |      .createNewWorkflow()
            |      .importWorkflow($workflowJsonDirRef)
            |      .execute()""".stripMargin
-      } else {
-        """    new NavigationControllerBuilder(ctx)
-          |      .createNewWorkflow()
-          |      .cleanWorkflow()
-          |      .execute()""".stripMargin
       }
 
     val operatorBlock =
