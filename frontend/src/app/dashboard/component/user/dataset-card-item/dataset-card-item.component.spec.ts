@@ -21,23 +21,19 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { HttpClientTestingModule } from "@angular/common/http/testing";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { RouterTestingModule } from "@angular/router/testing";
-import { of } from "rxjs";
+import { of, throwError } from "rxjs";
 import type { Mocked } from "vitest";
 
 import { DatasetCardItemComponent } from "./dataset-card-item.component";
 import { DashboardEntry } from "src/app/dashboard/type/dashboard-entry";
-import { NzModalService } from "ng-zorro-antd/modal";
 import { DatasetService } from "../../../service/user/dataset/dataset.service";
-import { DownloadService } from "../../../service/user/download/download.service";
 import { HubService } from "../../../../hub/service/hub.service";
 import { UserService } from "../../../../common/service/user/user.service";
 import { StubUserService } from "../../../../common/service/user/stub-user.service";
-import { AppSettings } from "../../../../common/app-setting";
 import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../app-routing.constant";
 import { commonTestProviders } from "../../../../common/testing/test-utils";
 
 function makeDatasetEntry(overrides: Partial<any> = {}): DashboardEntry {
-  // Only includes fields read by the component's logic; template fields are skipped
   return {
     type: "dataset",
     id: 42,
@@ -62,9 +58,12 @@ describe("DatasetCardItemComponent", () => {
     await TestBed.configureTestingModule({
       imports: [DatasetCardItemComponent, HttpClientTestingModule, BrowserAnimationsModule, RouterTestingModule],
       providers: [
-        { provide: NzModalService, useValue: { create: vi.fn() } },
-        { provide: DatasetService, useValue: { retrieveOwners: vi.fn().mockReturnValue(of([])) } },
-        { provide: DownloadService, useValue: { downloadDataset: vi.fn().mockReturnValue(of(new Blob())) } },
+        {
+          provide: DatasetService,
+          useValue: {
+            getDatasetCoverUrl: vi.fn().mockReturnValue(of({ url: "https://s3.example/presigned" })),
+          },
+        },
         { provide: HubService, useValue: hubServiceSpy },
         { provide: UserService, useClass: StubUserService },
         ...commonTestProviders,
@@ -94,15 +93,35 @@ describe("DatasetCardItemComponent", () => {
 
   describe("coverImageSrc", () => {
     it("falls back to the default cover when coverImageUrl is missing", () => {
+      const datasetService = TestBed.inject(DatasetService) as unknown as Mocked<DatasetService>;
       component.entry = makeDatasetEntry({ coverImageUrl: undefined });
+      component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
+      expect(component.coverImageSrc).toBe(component.defaultCover);
+      expect(datasetService.getDatasetCoverUrl).not.toHaveBeenCalled();
+    });
+
+    it("swaps in the presigned URL once the backend resolves it", () => {
+      const datasetService = TestBed.inject(DatasetService) as unknown as Mocked<DatasetService>;
+      component.entry = makeDatasetEntry({ id: 7, coverImageUrl: "v1/img.png" });
+      component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
+      expect(datasetService.getDatasetCoverUrl).toHaveBeenCalledWith(7);
+      expect(component.coverImageSrc).toBe("https://s3.example/presigned");
+    });
+
+    it("falls back to the default cover when the backend returns a null url", () => {
+      const datasetService = TestBed.inject(DatasetService) as unknown as Mocked<DatasetService>;
+      datasetService.getDatasetCoverUrl.mockReturnValueOnce(of({ url: null }));
+      component.entry = makeDatasetEntry({ id: 9, coverImageUrl: "v1/img.png" });
       component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
       expect(component.coverImageSrc).toBe(component.defaultCover);
     });
 
-    it("builds the API URL when coverImageUrl is set", () => {
-      component.entry = makeDatasetEntry({ id: 7, coverImageUrl: "v1/img.png" });
+    it("falls back to the default cover when the backend errors", () => {
+      const datasetService = TestBed.inject(DatasetService) as unknown as Mocked<DatasetService>;
+      datasetService.getDatasetCoverUrl.mockReturnValueOnce(throwError(() => new Error("403")));
+      component.entry = makeDatasetEntry({ id: 11, coverImageUrl: "v1/img.png" });
       component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
-      expect(component.coverImageSrc).toBe(`${AppSettings.getApiEndpoint()}/dataset/7/cover`);
+      expect(component.coverImageSrc).toBe(component.defaultCover);
     });
   });
 

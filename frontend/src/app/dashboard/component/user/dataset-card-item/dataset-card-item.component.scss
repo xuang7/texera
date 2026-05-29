@@ -60,42 +60,17 @@
   }
 }
 
-.card-title-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+.card-title {
+  display: -webkit-box;
+  height: calc(15px * 1.35 * 2);
   margin-bottom: 10px;
-
-  .card-title {
-    flex: 1;
-    min-width: 0;
-    height: calc(15px * 1.35 * 2);
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    word-break: break-word;
-  }
-
-  .more-btn {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border: none;
-    background: transparent;
-    color: #8c8c8c;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    i {
-      font-size: 18px;
-    }
-  }
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .truncate-single-line {

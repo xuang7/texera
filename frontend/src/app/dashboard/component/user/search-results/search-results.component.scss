@@ -144,7 +144,7 @@ nz-content {
   justify-content: start;
   align-items: stretch;
 
-  * {
+  > * {
     max-width: 300px;
   }
 }

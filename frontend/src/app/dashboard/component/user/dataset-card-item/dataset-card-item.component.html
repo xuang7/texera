@@ -23,27 +23,11 @@
   [nzCover]="coverTpl"
   [routerLink]="entryLink">
   <div class="dataset-card-body-link">
-    <div class="card-title-row">
-      <span
-        class="card-title"
-        [title]="entry.name">
-        {{ entry.name }}
-      </span>
-      <button
-        *ngIf="editable"
-        class="more-btn"
-        nz-dropdown
-        nzTrigger="click"
-        nzPlacement="bottomRight"
-        [nzDropdownMenu]="cardActionsMenu"
-        (click)="$event.stopPropagation(); $event.preventDefault()"
-        nz-tooltip="More actions">
-        <i
-          nz-icon
-          nzType="more"
-          nzTheme="outline"></i>
-      </button>
-    </div>
+    <span
+      class="card-title"
+      [title]="entry.name">
+      {{ entry.name }}
+    </span>
 
     <div class="card-meta">
       <div class="meta-line meta-line--owner">
@@ -115,44 +99,3 @@
     <span class="cover-id-badge">#{{ entry.id }}</span>
   </div>
 </ng-template>
-
-<nz-dropdown-menu #cardActionsMenu="nzDropdownMenu">
-  <ul
-    nz-menu
-    class="dataset-card-actions-menu">
-    <li
-      nz-menu-item
-      (click)="onClickOpenShareAccess()">
-      <i
-        nz-icon
-        nzType="share-alt"
-        nzTheme="outline"></i>
-      Share
-    </li>
-    <li
-      nz-menu-item
-      (click)="onClickDownload()">
-      <i
-        nz-icon
-        nzType="cloud-download"
-        nzTheme="outline"></i>
-      Download
-    </li>
-    <li
-      *ngIf="editable"
-      nz-menu-item
-      nzDanger
-      [nzDisabled]="!canDelete"
-      nz-popconfirm
-      nzPopconfirmTitle="Confirm to delete this dataset."
-      nzOkText="Delete"
-      nzOkDanger
-      (nzOnConfirm)="deleted.emit()">
-      <i
-        nz-icon
-        nzType="delete"
-        nzTheme="outline"></i>
-      Delete
-    </li>
-  </ul>
-</nz-dropdown-menu>

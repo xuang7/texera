@@ -17,34 +17,15 @@
  * under the License.
  */
 
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  Output,
-  SimpleChanges,
-} from "@angular/core";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { NgIf } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { NzCardComponent } from "ng-zorro-antd/card";
 import { NzIconDirective } from "ng-zorro-antd/icon";
-import { NzPopconfirmDirective } from "ng-zorro-antd/popconfirm";
-import { NzTooltipModule } from "ng-zorro-antd/tooltip";
-import { NzDropdownDirective, NzDropdownMenuComponent } from "ng-zorro-antd/dropdown";
-import { NzMenuDirective, NzMenuItemComponent } from "ng-zorro-antd/menu";
-import { NzModalService } from "ng-zorro-antd/modal";
-import { firstValueFrom } from "rxjs";
 import { DashboardEntry } from "../../../type/dashboard-entry";
 import { UserAvatarComponent } from "../user-avatar/user-avatar.component";
-import { ShareAccessComponent } from "../share-access/share-access.component";
 import { DatasetService } from "../../../service/user/dataset/dataset.service";
-import { DownloadService } from "../../../service/user/download/download.service";
 import { HubService } from "../../../../hub/service/hub.service";
-import { AppSettings } from "../../../../common/app-setting";
 import { formatSize } from "../../../../common/util/size-formatter.util";
 import { formatCount, formatRelativeTime } from "../../../../common/util/format.util";
 import { isDefined } from "../../../../common/util/predicate";
@@ -56,26 +37,11 @@ import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../
   templateUrl: "./dataset-card-item.component.html",
   styleUrls: ["./dataset-card-item.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    NgIf,
-    RouterLink,
-    NzCardComponent,
-    NzIconDirective,
-    NzPopconfirmDirective,
-    NzTooltipModule,
-    NzDropdownDirective,
-    NzDropdownMenuComponent,
-    NzMenuDirective,
-    NzMenuItemComponent,
-    UserAvatarComponent,
-  ],
+  imports: [RouterLink, NzCardComponent, NzIconDirective, UserAvatarComponent],
 })
 export class DatasetCardItemComponent implements OnChanges {
-  @Input() editable = false;
   @Input() currentUid: number | undefined;
   @Input() entry!: DashboardEntry;
-  @Output() deleted = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
 
   entryLink: string[] = [];
   coverImageSrc: string = "";
@@ -85,9 +51,7 @@ export class DatasetCardItemComponent implements OnChanges {
   isLiked = false;
 
   constructor(
-    private modalService: NzModalService,
     private datasetService: DatasetService,
-    private downloadService: DownloadService,
     private hubService: HubService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -107,15 +71,30 @@ export class DatasetCardItemComponent implements OnChanges {
     if (this.entry.type !== "dataset" || typeof this.entry.id !== "number") {
       return;
     }
+    const did = this.entry.id;
     const owners = this.entry.accessibleUserIds;
     if (this.currentUid !== undefined && owners.includes(this.currentUid)) {
-      this.entryLink = [DASHBOARD_USER_DATASET, String(this.entry.id)];
+      this.entryLink = [DASHBOARD_USER_DATASET, String(did)];
     } else {
-      this.entryLink = [DASHBOARD_HUB_DATASET_RESULT_DETAIL, String(this.entry.id)];
+      this.entryLink = [DASHBOARD_HUB_DATASET_RESULT_DETAIL, String(did)];
     }
-    this.coverImageSrc = this.entry.coverImageUrl
-      ? `${AppSettings.getApiEndpoint()}/dataset/${this.entry.id}/cover`
-      : this.defaultCover;
+
+    this.coverImageSrc = this.defaultCover;
+    if (this.entry.coverImageUrl) {
+      this.datasetService
+        .getDatasetCoverUrl(did)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: ({ url }) => {
+            this.coverImageSrc = url ?? this.defaultCover;
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.coverImageSrc = this.defaultCover;
+            this.cdr.markForCheck();
+          },
+        });
+    }
   }
 
   onCoverError(event: Event): void {
@@ -124,32 +103,9 @@ export class DatasetCardItemComponent implements OnChanges {
     image.src = this.defaultCover;
   }
 
-  public async onClickOpenShareAccess(): Promise<void> {
-    if (this.entry.type !== "dataset") return;
-    const modal = this.modalService.create({
-      nzContent: ShareAccessComponent,
-      nzData: {
-        writeAccess: this.entry.accessLevel === "WRITE",
-        type: "dataset",
-        id: this.entry.id,
-        allOwners: await firstValueFrom(this.datasetService.retrieveOwners()),
-      },
-      nzFooter: null,
-      nzTitle: "Share this dataset with others",
-      nzCentered: true,
-      nzWidth: "700px",
-    });
-    modal.componentInstance?.refresh.pipe(untilDestroyed(this)).subscribe(() => this.refresh.emit());
-  }
-
-  public onClickDownload = (): void => {
-    if (this.entry.type !== "dataset" || !this.entry.id) return;
-    this.downloadService.downloadDataset(this.entry.id, this.entry.name).pipe(untilDestroyed(this)).subscribe();
-  };
-
   toggleLike(): void {
     if (!isDefined(this.currentUid) || !isDefined(this.entry.id)) return;
-    // Flip optimistically; reconcile or revert when the server responds.
+    // optimistic flip; server response reconciles or reverts
     const previousLiked = this.isLiked;
     this.isLiked = !previousLiked;
     this.likeCount += previousLiked ? -1 : 1;
@@ -170,10 +126,6 @@ export class DatasetCardItemComponent implements OnChanges {
           this.cdr.markForCheck();
         },
       });
-  }
-
-  get canDelete(): boolean {
-    return this.entry.type === "dataset" && this.entry.dataset.isOwner;
   }
 
   formatSize = formatSize;

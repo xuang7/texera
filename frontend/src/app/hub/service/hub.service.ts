@@ -103,7 +103,7 @@ export class HubService {
     });
   }
 
-  /** Like/unlike then fetch updated count; emits the final {liked, likeCount}. */
+  /** Like/unlike, then re-fetch the count. */
   public toggleLike(
     entityId: number,
     entityType: EntityType,
