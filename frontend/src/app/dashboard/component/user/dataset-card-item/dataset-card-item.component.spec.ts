@@ -30,7 +30,7 @@ import { DatasetService } from "../../../service/user/dataset/dataset.service";
 import { HubService } from "../../../../hub/service/hub.service";
 import { UserService } from "../../../../common/service/user/user.service";
 import { StubUserService } from "../../../../common/service/user/stub-user.service";
-import { DASHBOARD_HUB_DATASET_RESULT_DETAIL, DASHBOARD_USER_DATASET } from "../../../../app-routing.constant";
+import { HUB_DATASET_RESULT_DETAIL, USER_DATASET } from "../../../../app-routing.constant";
 import { commonTestProviders } from "../../../../common/testing/test-utils";
 
 function makeDatasetEntry(overrides: Partial<any> = {}): DashboardEntry {
@@ -80,14 +80,14 @@ describe("DatasetCardItemComponent", () => {
       component.currentUid = 1;
       component.entry = makeDatasetEntry({ id: 99, accessibleUserIds: [1, 2] });
       component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
-      expect(component.entryLink).toEqual([DASHBOARD_USER_DATASET, "99"]);
+      expect(component.entryLink).toEqual([USER_DATASET, "99"]);
     });
 
     it("routes to the hub detail page when the current user has no access", () => {
       component.currentUid = 5;
       component.entry = makeDatasetEntry({ id: 99, accessibleUserIds: [1, 2] });
       component.ngOnChanges({ entry: { currentValue: component.entry } } as any);
-      expect(component.entryLink).toEqual([DASHBOARD_HUB_DATASET_RESULT_DETAIL, "99"]);
+      expect(component.entryLink).toEqual([HUB_DATASET_RESULT_DETAIL, "99"]);
     });
   });
 
