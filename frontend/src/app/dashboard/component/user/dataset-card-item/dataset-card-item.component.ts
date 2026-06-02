@@ -68,7 +68,7 @@ export class DatasetCardItemComponent implements OnChanges {
   }
 
   private initializeEntry(): void {
-    if (this.entry.type !== "dataset" || typeof this.entry.id !== "number") {
+    if (!this.entry || this.entry.type !== "dataset" || typeof this.entry.id !== "number") {
       return;
     }
     const did = this.entry.id;
