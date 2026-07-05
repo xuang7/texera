@@ -94,11 +94,15 @@ object PveManager {
     }
   }
 
+  // The lock file is copied to /tmp/system-requirements-lock.txt inside every
+  // deployed image (see bin/computing-unit-master.dockerfile), so single-node
+  // Docker and Kubernetes both find it there. Only a source-tree dev run reads
+  // the repo-relative amber/ copy. `isLocal` alone can't distinguish a
+  // containerized single-node run (also non-k8s) from a dev run, so probe.
   private def getSystemPath(isLocal: Boolean): Path = {
-    Paths.get(
-      if (isLocal) "amber/system-requirements-lock.txt"
-      else "/tmp/system-requirements-lock.txt"
-    )
+    val deployPath = Paths.get("/tmp/system-requirements-lock.txt")
+    if (Files.exists(deployPath)) deployPath
+    else Paths.get("amber/system-requirements-lock.txt")
   }
 
   def getSystemPackages(isLocal: Boolean): Seq[String] = {
