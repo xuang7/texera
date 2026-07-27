@@ -347,3 +347,72 @@ nz-select {
   border-radius: 8px;
   margin-right: 80px;
 }
+
+.contributors-collapse ::ng-deep {
+  .ant-collapse-header {
+    padding: 4px 0 !important;
+    font-size: 16px;
+  }
+
+  .ant-collapse-body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+.contributor-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 200px);
+  gap: 16px;
+}
+
+.contributor-card {
+  width: 200px;
+  min-height: 160px;
+  padding: 16px 16px;
+  background-color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  word-break: break-word;
+
+  .contributor-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+
+  .contributor-field {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+.contributor-actions-menu {
+  .anticon {
+    margin-right: 8px;
+  }
+}
+
+.contributor-card-add {
+  width: 80px;
+  height: 80px;
+  align-self: center;
+  color: #8c8c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #1890ff;
+  }
+
+  .add-icon {
+    font-size: 22px;
+  }
+}

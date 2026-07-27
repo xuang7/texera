@@ -59,7 +59,14 @@ describe("UserDatasetVersionCreatorComponent", () => {
         BrowserAnimationsModule,
         FormsModule,
         ReactiveFormsModule,
-        FormlyModule.forRoot({ types: [{ name: "input", component: StubFormlyInputComponent }] }),
+        FormlyModule.forRoot({
+          types: [
+            { name: "input", component: StubFormlyInputComponent },
+            { name: "checkbox", component: StubFormlyInputComponent },
+            { name: "textarea", component: StubFormlyInputComponent },
+            { name: "array", component: StubFormlyInputComponent },
+          ],
+        }),
         HttpClientTestingModule,
       ],
       providers: [
@@ -94,7 +101,7 @@ describe("UserDatasetVersionCreatorComponent", () => {
     const fixture = await createFixture({ isCreatingVersion: false });
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.fields.map(f => f.key)).toEqual(["name", "description"]);
+    expect(fixture.componentInstance.fields.map(f => f.key)).toEqual(["name", "description", "contributors"]);
   });
 
   it("onClickCreate does nothing when the required name is empty (invalid form)", async () => {

@@ -27,7 +27,7 @@ import {
   getFullPathFromDatasetFileNode,
   getRelativePathFromDatasetFileNode,
 } from "../../../../../common/type/datasetVersionFileTree";
-import { DatasetVersion } from "../../../../../common/type/dataset";
+import { Contributor, DatasetVersion } from "../../../../../common/type/dataset";
 import { switchMap, throttleTime } from "rxjs/operators";
 import { NotificationService } from "../../../../../common/service/notification/notification.service";
 import { DownloadService } from "../../../../service/user/download/download.service";
@@ -44,6 +44,10 @@ import { Subscription } from "rxjs";
 import { formatCount, formatSpeed, formatTime, parseIntOrDefault } from "src/app/common/util/format.util";
 import { format } from "date-fns";
 import { NgIf, NgClass, NgFor } from "@angular/common";
+import { NzDropdownDirective, NzDropdownMenuComponent } from "ng-zorro-antd/dropdown";
+import { NzMenuDirective, NzMenuItemComponent } from "ng-zorro-antd/menu";
+import { NzPopconfirmDirective } from "ng-zorro-antd/popconfirm";
+import { UserDatasetContributorEditorComponent } from "./user-dataset-contributor-editor/user-dataset-contributor-editor.component";
 import { NzCardComponent, NzCardMetaComponent } from "ng-zorro-antd/card";
 import { NzTooltipDirective } from "ng-zorro-antd/tooltip";
 import { NzTagComponent } from "ng-zorro-antd/tag";
@@ -114,6 +118,11 @@ export const ABORT_RETRY_BACKOFF_BASE_MS = 100;
     CdkVirtualScrollViewport,
     CdkFixedSizeVirtualScroll,
     CdkVirtualForOf,
+    NzDropdownDirective,
+    NzDropdownMenuComponent,
+    NzMenuDirective,
+    NzMenuItemComponent,
+    NzPopconfirmDirective,
   ],
 })
 export class DatasetDetailComponent implements OnInit {
@@ -128,6 +137,8 @@ export class DatasetDetailComponent implements OnInit {
   public userDatasetAccessLevel: "READ" | "WRITE" | "NONE" = "NONE";
   public ownerEmail: string = "";
   public isOwner: boolean = false;
+  public datasetContributors: Contributor[] = [];
+  public selectedContributor: Contributor | null = null;
 
   public currentDisplayedFileName: string = "";
   public currentFileSize: number | undefined;
@@ -388,6 +399,7 @@ export class DatasetDetailComponent implements OnInit {
                 .pop() || "";
             this.datasetCreationTimeTooltip = `${format(date, "zzzz")} (${timeZoneName})`;
           }
+          this.datasetContributors = dashboardDataset.contributors || [];
         });
     }
   }
@@ -928,5 +940,65 @@ export class DatasetDetailComponent implements OnInit {
     } catch (error) {
       this.notificationService.error("Failed to copy file path");
     }
+  }
+
+  onAddContributor(): void {
+    const modal = this.modalService.create({
+      nzTitle: "Add Contributor",
+      nzContent: UserDatasetContributorEditorComponent,
+      nzFooter: null,
+      nzData: null,
+    });
+    modal.afterClose.pipe(untilDestroyed(this)).subscribe(newContributor => {
+      if (newContributor) {
+        const previous = this.datasetContributors;
+        this.datasetContributors = [...this.datasetContributors, newContributor];
+        this.saveContributors(previous);
+      }
+    });
+  }
+
+  onEditContributor(contributor: Contributor | null): void {
+    if (!contributor) {
+      return;
+    }
+    const modal = this.modalService.create({
+      nzTitle: "Edit Contributor",
+      nzContent: UserDatasetContributorEditorComponent,
+      nzFooter: null,
+      nzData: { ...contributor },
+    });
+    modal.afterClose.pipe(untilDestroyed(this)).subscribe(updated => {
+      if (updated) {
+        const previous = this.datasetContributors;
+        this.datasetContributors = this.datasetContributors.map(c => (c === contributor ? updated : c));
+        this.saveContributors(previous);
+      }
+    });
+  }
+
+  onDeleteContributor(contributor: Contributor | null): void {
+    if (!contributor) {
+      return;
+    }
+    const previous = this.datasetContributors;
+    this.datasetContributors = this.datasetContributors.filter(c => c !== contributor);
+    this.saveContributors(previous);
+  }
+
+  private saveContributors(previous: Contributor[]): void {
+    if (!this.did) {
+      return;
+    }
+    this.datasetService
+      .updateDatasetContributors(this.did, this.datasetContributors)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: () => this.notificationService.success("Contributors updated"),
+        error: () => {
+          this.datasetContributors = previous;
+          this.notificationService.error("Failed to update contributors");
+        },
+      });
   }
 }

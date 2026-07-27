@@ -132,6 +132,107 @@
         (descriptionChange)="onDatasetDescriptionChange($event)">
       </texera-markdown-description>
     </div>
+
+    <nz-divider></nz-divider>
+
+    <!-- Contributor's section -->
+    <nz-collapse
+      nzGhost
+      nzExpandIconPosition="end"
+      class="contributors-collapse">
+      <nz-collapse-panel
+        nzHeader="Contributors"
+        [nzActive]="false">
+        <div class="contributor-list">
+          <div
+            *ngFor="let contributor of datasetContributors"
+            class="contributor-card">
+            <button
+              *ngIf="userHasWriteAccess() || isOwner"
+              nz-button
+              nzType="text"
+              nzSize="small"
+              class="contributor-actions"
+              nz-dropdown
+              nzTrigger="click"
+              nzPlacement="bottomRight"
+              [nzDropdownMenu]="contributorActionsMenu"
+              (click)="selectedContributor = contributor">
+              <i
+                nz-icon
+                nzType="more"></i>
+            </button>
+            <div
+              class="contributor-field"
+              nz-tooltip
+              [nzTooltipTitle]="contributor.name">
+              <strong>Name:</strong> {{ contributor.name }}
+            </div>
+            <div class="contributor-field"><strong>Creator:</strong> {{ contributor.creator ? 'Yes' : 'No' }}</div>
+            <div
+              class="contributor-field"
+              nz-tooltip
+              [nzTooltipTitle]="contributor.email">
+              <strong>Email:</strong> {{ contributor.email }}
+            </div>
+            <div
+              class="contributor-field"
+              nz-tooltip
+              [nzTooltipTitle]="contributor.affiliation">
+              <strong>Affiliation:</strong> {{ contributor.affiliation }}
+            </div>
+            <div
+              *ngIf="contributor.comments"
+              class="contributor-field"
+              nz-tooltip
+              [nzTooltipTitle]="contributor.comments">
+              <strong>Comments:</strong> {{ contributor.comments }}
+            </div>
+          </div>
+          <div
+            *ngIf="userHasWriteAccess()"
+            class="contributor-card-add"
+            role="button"
+            tabindex="0"
+            (click)="onAddContributor()"
+            (keydown.enter)="onAddContributor()">
+            <i
+              nz-icon
+              nzType="plus"
+              class="add-icon"></i>
+          </div>
+        </div>
+        <nz-dropdown-menu #contributorActionsMenu="nzDropdownMenu">
+          <ul
+            nz-menu
+            class="contributor-actions-menu">
+            <li
+              *ngIf="userHasWriteAccess()"
+              nz-menu-item
+              (click)="onEditContributor(selectedContributor)">
+              <i
+                nz-icon
+                nzType="edit"></i>
+              Edit
+            </li>
+            <li
+              *ngIf="isOwner"
+              nz-menu-item
+              nzDanger
+              nz-popconfirm
+              [nzPopconfirmTitle]="'Delete contributor &quot;' + selectedContributor?.name + '&quot;?'"
+              nzOkText="Delete"
+              nzOkDanger
+              (nzOnConfirm)="onDeleteContributor(selectedContributor)">
+              <i
+                nz-icon
+                nzType="delete"></i>
+              Delete
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </nz-collapse-panel>
+    </nz-collapse>
   </nz-card>
 </div>
 <nz-layout>
