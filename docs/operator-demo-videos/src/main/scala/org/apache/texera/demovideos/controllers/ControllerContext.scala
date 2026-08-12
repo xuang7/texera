@@ -54,7 +54,7 @@ object ControllerStep {
   * Base builder — subclasses accumulate steps via fluent API, then execute().
   *
   * Usage:
-  *   new LoginControllerBuilder(ctx).login("u","p").logout().execute()
+  *   new LoginControllerBuilder(ctx).login("u","p").execute()
   */
 abstract class ControllerBuilder(protected val context: ControllerContext) {
   private val steps: ArrayBuffer[ControllerStep] = ArrayBuffer.empty
