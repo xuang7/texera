@@ -48,5 +48,5 @@ Compile / scalacOptions ++= Seq(
 libraryDependencies ++= Seq(
   // Drives a real browser to record the operator demos.
   "com.microsoft.playwright" % "playwright" % "1.57.0",
-  "org.scalatest" %% "scalatest" % "3.2.15" % Test
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
