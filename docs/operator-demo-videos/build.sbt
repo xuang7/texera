@@ -50,3 +50,13 @@ libraryDependencies ++= Seq(
   "com.microsoft.playwright" % "playwright" % "1.57.0",
   "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
+
+// Playwright's transitive jackson (2.21.x) breaks jackson-module-scala 2.18.x from the
+// operator-metadata modules; keep jackson on the repo-wide version (root build.sbt).
+val jacksonVersion = "2.18.8"
+
+dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion
+)

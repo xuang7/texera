@@ -281,6 +281,10 @@ lazy val NotebookMigrationService = (project in file("notebook-migration-service
 
 // Playwright automation recording the per-operator demo videos linked from docs/reference/operators/.
 lazy val DemoVideoGenerator = (project in file("docs/operator-demo-videos"))
+  .dependsOn(
+    // Reads each operator's metadata (groups, ports) to locate and wire it on the canvas.
+    WorkflowExecutionService
+  )
 
 // root project definition
 lazy val TexeraProject = (project in file("."))

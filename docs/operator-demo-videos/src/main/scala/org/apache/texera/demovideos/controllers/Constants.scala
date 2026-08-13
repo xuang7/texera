@@ -24,12 +24,21 @@ package org.apache.texera.demovideos.controllers
 
 /** Semantic wait tiers for `page.waitForTimeout(...)`, named by what is being waited on. */
 private[controllers] object Delays {
+  val Tick: Int = 80 // DOM micro-updates between user-like actions
+  val Settle: Int = 150 // dropdown / collapse / toggle animation settling
   val Long: Int = 300 // major UI transition: panel collapse, page settling
   val Network: Int = 700 // backend round trip: upload, login submission
 }
 
 /** Upper bounds for `Locator.waitFor(...)` and similar. */
 private[controllers] object Timeouts {
+  val Quick: Int = 2000 // element expected to already be present
   val Medium: Int = 5000 // navigation, or a dialog that has to open
   val Long: Int = 20000 // page load with heavy assets
+}
+
+/** Iteration counts for predicate polling loops. */
+private[controllers] object Retries {
+  val Short: Int = 8
+  val Medium: Int = 16
 }

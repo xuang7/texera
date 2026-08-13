@@ -19,7 +19,7 @@
 
 package org.apache.texera.demovideos.controllers
 
-import com.microsoft.playwright.options.WaitForSelectorState
+import com.microsoft.playwright.options.{BoundingBox, WaitForSelectorState}
 import com.microsoft.playwright.{Locator, Mouse, Page}
 
 // ═══════════════════════════════════════════════════════════════════
@@ -31,6 +31,26 @@ object Utils {
     loc.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE))
     loc
   }
+
+  // First visible match of a locator, or None; skips detached/hidden nodes.
+  def firstVisible(locator: Locator): Option[Locator] = {
+    val count = locator.count()
+    var i = 0
+    while (i < count) {
+      val nth = locator.nth(i)
+      try {
+        if (nth.isVisible()) return Some(nth)
+      } catch {
+        case _: Exception =>
+      }
+      i += 1
+    }
+    None
+  }
+
+  // Lowercase-alphanumeric key for loose name matching ("Bar Chart" == "barchart").
+  def normalize(s: String): String =
+    s.toLowerCase.replaceAll("[^a-z0-9]", "")
 
   def installFakeCursor(page: Page): Unit = {
     // Both the styles and the cursor element are wiped on every page navigation
@@ -126,5 +146,57 @@ object Utils {
     val x = box.x + box.width / 2.0
     val y = box.y + box.height / 2.0
     page.mouse().move(x, y, new Mouse.MoveOptions().setSteps(steps))
+  }
+
+  // ── Shared geometry helpers ──
+
+  def cellBox(cell: Locator): BoundingBox = {
+    val body = cell.locator("rect.body").first()
+    if (body.count() > 0) body.boundingBox() else cell.boundingBox()
+  }
+
+  def nudgeCell(page: Page, cell: Locator, dx: Double, dy: Double): Unit = {
+    val body = cell.locator("rect.body").first()
+    val box = if (body.count() > 0) body.boundingBox() else cell.boundingBox()
+    if (box == null) return
+    val startX = box.x + box.width / 2.0
+    val startY = box.y + box.height / 2.0
+    page.mouse().move(startX, startY, new Mouse.MoveOptions().setSteps(20))
+    page.mouse().down()
+    page.mouse().move(startX + dx, startY + dy, new Mouse.MoveOptions().setSteps(40))
+    page.mouse().up()
+  }
+
+  def overlaps(a: BoundingBox, b: BoundingBox): Boolean = {
+    val ax2 = a.x + a.width; val ay2 = a.y + a.height
+    val bx2 = b.x + b.width; val by2 = b.y + b.height
+    ax2 > b.x && bx2 > a.x && ay2 > b.y && by2 > a.y
+  }
+
+  def centerDx(a: BoundingBox, b: BoundingBox): Double = {
+    val ax = a.x + a.width / 2.0
+    val bx = b.x + b.width / 2.0
+    math.abs(ax - bx)
+  }
+
+  def ensureSeparated(
+      page: Page,
+      source: Locator,
+      target: Locator,
+      minSpacing: Double = 140.0
+  ): Unit = {
+    val srcBox = cellBox(source)
+    val tgtBox = cellBox(target)
+    if (srcBox == null || tgtBox == null) return
+
+    if (overlaps(srcBox, tgtBox) || centerDx(srcBox, tgtBox) < minSpacing) {
+      nudgeCell(page, target, dx = 260, dy = 0)
+      page.waitForTimeout(200)
+      val t1 = cellBox(target)
+      if (t1 != null && (overlaps(srcBox, t1) || centerDx(srcBox, t1) < minSpacing)) {
+        nudgeCell(page, target, dx = 360, dy = 120)
+        page.waitForTimeout(200)
+      }
+    }
   }
 }
