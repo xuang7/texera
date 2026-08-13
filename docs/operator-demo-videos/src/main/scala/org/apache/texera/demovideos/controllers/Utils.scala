@@ -36,9 +36,12 @@ object Utils {
     // Both the styles and the cursor element are wiped on every page navigation
     // (e.g., `page.navigate(".../dashboard")` in createNewWorkflow). `addInitScript`
     // re-runs after every load so the cursor follows the user across pages.
+    // An IIFE (addInitScript executes raw source, so a bare function expression would
+    // never run), deferring DOM setup until the document exists.
     val script =
       """
-      () => {
+      (() => {
+        const setup = () => {
         if (document.getElementById('pw-cursor-style')) return;
         const style = document.createElement('style');
         style.id = 'pw-cursor-style';
@@ -95,7 +98,14 @@ object Utils {
 
         document.addEventListener('mousedown',  (e) => { move(e.clientX, e.clientY); clickRing(e.clientX, e.clientY); }, true);
         document.addEventListener('pointerdown', (e) => { move(e.clientX, e.clientY); clickRing(e.clientX, e.clientY); }, true);
-      }
+        };
+        // Init scripts run before the document exists; the DOM work must wait.
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setup);
+        } else {
+          setup();
+        }
+      })()
       """
 
     // Persistent across navigations.
