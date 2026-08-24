@@ -23,9 +23,9 @@ import scala.collection.Seq
 
 name := "operator-demo-videos"
 
-// Enable semanticdb for Scalafix
-ThisBuild / semanticdbEnabled := true
-ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+// Enable semanticdb for Scalafix, scoped to this subproject of the root build.
+semanticdbEnabled := true
+semanticdbVersion := scalafixSemanticdb.revision
 
 // Restrict parallel execution of tests to avoid conflicts
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)

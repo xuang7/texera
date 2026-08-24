@@ -96,7 +96,8 @@ object Utils {
           setTimeout(() => ring.remove(), 650);
         };
 
-        document.addEventListener('mousedown',  (e) => { move(e.clientX, e.clientY); clickRing(e.clientX, e.clientY); }, true);
+        // Chromium fires pointerdown followed by the compatibility mousedown for each
+        // click; listening to both would render the ring twice per click.
         document.addEventListener('pointerdown', (e) => { move(e.clientX, e.clientY); clickRing(e.clientX, e.clientY); }, true);
         };
         // Init scripts run before the document exists; the DOM work must wait.
