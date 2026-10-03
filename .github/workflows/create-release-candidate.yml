@@ -308,9 +308,13 @@ jobs:
           # 3. Commit to dist/dev with your ASF account
           cd ..
           svn co --depth=empty https://dist.apache.org/repos/dist/dev/incubator/texera svn-texera
-          mkdir svn-texera/${RC_DIR}
+          if svn info https://dist.apache.org/repos/dist/dev/incubator/texera/${RC_DIR} >/dev/null 2>&1; then
+            svn update --set-depth=infinity svn-texera/${RC_DIR}
+          else
+            mkdir svn-texera/${RC_DIR} && svn add svn-texera/${RC_DIR}
+          fi
           cp rc/${SRC_TARBALL}* rc/${COMPOSE_TARBALL}* svn-texera/${RC_DIR}/
-          svn add svn-texera/${RC_DIR}
+          svn add --force svn-texera/${RC_DIR}
           svn commit svn-texera -m "Add Apache Texera ${VERSION} RC${RC_NUM} artifacts (source + docker-compose)"
           \`\`\`
 
