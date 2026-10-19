@@ -34,6 +34,8 @@ tags: [visualization, basic]
 | Value Column | ✓ | String (integer, long, double) | - | The value associated with slice of pie |
 | Name Column | ✓ | String | - | The name of the slice of pie |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |

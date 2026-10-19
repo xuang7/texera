@@ -33,7 +33,9 @@ tags: [machine-learning, advanced-sklearn]
 |----------|-------------|------|---------|-------------|
 | Parameter Setting | ✓ | [SklearnAdvancedSVRParameters](../../../parameters/sklearn-advanced-svr-parameters/) | - |  |
 | Ground Truth Attribute Column | ✓ | String | - | Ground truth attribute column |
-| Selected Features | ✓ | List | - | Features used to train the model |
+| Selected Features | ✓ | List\<String\> (integer, long, double, boolean) | - | Features used to train the model |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

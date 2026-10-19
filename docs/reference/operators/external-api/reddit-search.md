@@ -25,7 +25,7 @@ operator_type: "RedditSearch"
 tags: [external-api]
 ---
 
-[Home](../../) > [External Api](../)
+[Home](../../) > [External API](../)
 
 ### Input Properties
 

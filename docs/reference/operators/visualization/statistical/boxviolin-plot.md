@@ -36,6 +36,8 @@ tags: [visualization, statistical]
 | Horizontal Orientation |  | Boolean | false | Orientation style |
 | Violin Plot |  | Boolean | false | Check this box to overlay a violin plot on the<br>box plot; otherwise, show only the box plot |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |

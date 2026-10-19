@@ -31,7 +31,7 @@ tags: [data-cleaning, sort]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Sort Keys | ✓ | List<Sort Criteria Unit> | - | List of attributes to sort by with ordering<br>preferences |
+| Sort Keys | ✓ | List\<Sort Criteria Unit\> | - | List of attributes to sort by with ordering<br>preferences |
 | ↳ Attribute | ✓ | String | - | Attribute name to sort by |
 | ↳ Sort Preference | ✓ | ASC, DESC | - | Sort preference (ASC or DESC) |
 

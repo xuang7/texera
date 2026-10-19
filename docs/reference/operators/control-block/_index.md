@@ -32,6 +32,8 @@ tags: [control-block]
 | Operator | Description |
 |----------|-------------|
 | [If](if/) | If |
+| [Loop End](loop-end/) | Close a loop body and decide whether to iterate again based on a condition; pairs with Loop Start. |
+| [Loop Start](loop-start/) | Begin a loop that iterates over rows of the input table; pairs with Loop End. |
 | [Sleep](sleep/) | Sleep n seconds between each tuple |
 
-**Total**: 2 operators
+**Total**: 4 operators

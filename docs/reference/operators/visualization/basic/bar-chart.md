@@ -37,6 +37,8 @@ tags: [visualization, basic]
 | Pattern |  | String | - | Add texture to the chart based on an attribute |
 | Value Column | ✓ | String (integer, long, double) | - | The value associated with each category |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |

@@ -31,9 +31,11 @@ tags: [visualization, basic]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Y-axis | ✓ | String | - | The name of the column to represent y-axis |
+| Y-axis | ✓ | String (integer, long, double) | - | The name of the column to represent y-axis |
 | X-axis | ✓ | String | - | The name of the column to represent the x-axis |
-| Handle Duplicates |  | Nothing, Mean, Sum | NOTHING | How to handle duplicate values in y-axis |
+| Handle Duplicates |  | Nothing, Mean, Sum | Nothing | How to handle duplicate values in y-axis |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

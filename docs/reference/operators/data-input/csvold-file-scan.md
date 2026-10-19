@@ -35,7 +35,7 @@ tags: [data-input]
 | File Encoding | ✓ | UTF_8, UTF_16, US_ASCII | UTF_8 | Decoding charset to use on input |
 | Limit |  | Integer | - | Max output count |
 | Offset |  | Integer | - | Starting point of output |
-| Delimiter |  | String | , | Delimiter to separate each line into fields |
+| Delimiter |  | String | , | Single character separating the fields on each<br>line |
 | Header |  | Boolean | true | Whether the CSV file contains a header line |
 
 ### Output Ports

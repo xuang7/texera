@@ -31,8 +31,10 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Dimensions | ✓ | List | - | List of numeric columns to visualize as parallel<br>axes (min: 1, At least one dimension is required) |
-| Color Column |  | String | - | Column used to color or group the lines |
+| Dimensions | ✓ | List\<String\> (integer, long, double) | - | List of numeric columns to visualize as parallel<br>axes (min: 1, At least one dimension is required) |
+| Color Column |  | String (integer, long, double, boolean) | - | Column used to color or group the lines |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

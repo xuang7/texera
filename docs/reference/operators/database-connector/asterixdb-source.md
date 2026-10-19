@@ -19,7 +19,7 @@
 
 ---
 title: "AsterixDB Source"
-description: "Read data from a AsterixDB instance"
+description: "Read data from an AsterixDB instance"
 category: "Database Connector"
 operator_type: "AsterixDBSource"
 tags: [database-connector]
@@ -46,16 +46,16 @@ tags: [database-connector]
 | ↳ Max |  | String | auto |  |
 | ↳ Batch by Interval |  | Long | 1000000000 |  |
 | Geo Search? |  | Boolean | false |  |
-| ↳ Geo Search By Columns |  | List<String> | - | Column(s) to check if any of them is in the<br>bounding box below |
-| ↳ Geo Search Bounding Box |  | List<String> | - | At least 2 entries should be provided to form a<br>bounding box. format of each entry: long, lat |
+| ↳ Geo Search By Columns |  | List\<String\> | - | Column(s) to check if any of them is in the<br>bounding box below |
+| ↳ Geo Search Bounding Box |  | List\<String\> | - | At least 2 entries should be provided to form a<br>bounding box. format of each entry: long, lat |
 | Regex Search? |  | Boolean | false |  |
 | ↳ Regex Search By Column |  | String | - |  |
 | ↳ Regex to Search |  | String | - |  |
 | Filter Condition? |  | Boolean | false |  |
-| ↳ Predicates |  | List<Filter Predicate> | - | Multiple predicates in OR |
+| ↳ Predicates |  | List\<Filter Predicate\> | - | Multiple predicates in OR |
 | &nbsp;&nbsp;↳ Attribute | ✓ | String | - |  |
 | &nbsp;&nbsp;↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |
-| &nbsp;&nbsp;↳ Value |  | String | - |  |
+| &nbsp;&nbsp;↳ Value |  | String | - | Hidden when `Condition` matches<br>`is null\|is not null` |
 
 ### Output Ports
 

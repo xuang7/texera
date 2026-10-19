@@ -31,10 +31,10 @@ tags: [visualization, basic]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Font Size |  | Double | 12 | Font size of the Figure Factory Table |
+| Font Size |  | Double | 12.0 | Font size of the Figure Factory Table (min: 0,<br>Font size must be a non-negative number) |
 | Font Color (Hex Code) |  | String | #000000 | Font color of the Figure Factory Table |
-| Row Height |  | Double | 30 | Row height of the Figure Factory Table |
-| Add Attribute | ✓ | List<Attribute> | [1 items] | List of columns to include in the figure factory<br>table |
+| Row Height |  | Double | 30.0 | Row height of the Figure Factory Table (min: 30,<br>Row height must be at least 30) |
+| Add Attribute | ✓ | List\<Figure Factory Table Config\> | - | List of columns to include in the figure factory<br>table |
 | ↳ Attribute Name | ✓ | String | - |  |
 
 ### Output Ports

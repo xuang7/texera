@@ -31,10 +31,12 @@ tags: [machine-learning, hugging-face]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Attribute | ✓ | String | - | Column to perform sentiment analysis on |
+| Attribute | ✓ | String (string) | - | Column to perform sentiment analysis on |
 | Positive Result Attribute | ✓ | String | huggingface_sentiment_positive | Column name of the sentiment analysis result<br>(positive) |
 | Neutral Result Attribute | ✓ | String | huggingface_sentiment_neutral | Column name of the sentiment analysis result<br>(neutral) |
 | Negative Result Attribute | ✓ | String | huggingface_sentiment_negative | Column name of the sentiment analysis result<br>(negative) |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

@@ -39,6 +39,8 @@ tags: [visualization, basic]
 | log scale Y |  | Boolean | false | Values in Y-column is log-scaled |
 | Hover column |  | String | - | Column value to display when a dot is hovered over |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |

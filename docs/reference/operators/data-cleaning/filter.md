@@ -31,10 +31,10 @@ tags: [data-cleaning]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Predicates | ✓ | List<Filter Predicate> | - | Multiple predicates in OR |
+| Predicates | ✓ | List\<Filter Predicate\> | - | Multiple predicates in OR |
 | ↳ Attribute | ✓ | String | - |  |
 | ↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |
-| ↳ Value |  | String | - |  |
+| ↳ Value |  | String | - | Hidden when `Condition` matches<br>`is null\|is not null` |
 
 ### Output Ports
 

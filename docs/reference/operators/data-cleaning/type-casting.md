@@ -31,8 +31,8 @@ tags: [data-cleaning]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| TypeCasting Units | ✓ | List<Unit> | - | Multiple type castings |
-| ↳ Attribute | ✓ | String | - | Attribute for type casting |
+| TypeCasting Units | ✓ | List\<Type Casting Unit\> | - | Multiple type castings |
+| ↳ Attribute | ✓ | String | - | Attribute for type casting. Accepts string, long,<br>double, boolean when `Cast type` is integer;<br>string, integer, long, boolean when `Cast type`<br>is double; string, integer, long, double when<br>`Cast type` is boolean; string, integer, double,<br>boolean, timestamp when `Cast type` is long;<br>string, long when `Cast type` is timestamp |
 | ↳ Cast type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - | Result type after type casting |
 
 ### Output Ports

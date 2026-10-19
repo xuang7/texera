@@ -32,4 +32,3 @@ tags: [user-defined-functions]
 - [Python](python/)
 - [Java](java/)
 - [R](r/)
-
