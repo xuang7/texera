@@ -25,11 +25,9 @@ categories: [Documentation]
 tags: [operators, reference, index]
 ---
 
-<!-- Generated: 2026-04-25T14:25:46.235567 -->
-<!-- Total Operators: 162 -->
-
 ## Quick Links
 
+- [Output Port Modes](output-modes/) - how each output port delivers its results
 - [Parameter Reference](parameters/) - ML parameter specifications
 
 ---
@@ -44,11 +42,11 @@ tags: [operators, reference, index]
   - [Set](data-cleaning/set/) (4 operators)
   - [Aggregate](data-cleaning/aggregate/) (1 operator)
   - [Sort](data-cleaning/sort/) (3 operators)
-- [Machine Learning](machine-learning/) (63 operators)
+- [Machine Learning](machine-learning/) (64 operators)
   - [Sklearn](machine-learning/sklearn/) (54 operators)
     - [Sklearn Training](machine-learning/sklearn/sklearn-training/) (26 operators)
   - [Advanced Sklearn](machine-learning/advanced-sklearn/) (4 operators)
-  - [Hugging Face](machine-learning/hugging-face/) (4 operators)
+  - [Hugging Face](machine-learning/hugging-face/) (5 operators)
   - [Machine Learning General](machine-learning/machine-learning-general/) (1 operator)
 - [Utilities](utilities/) (4 operators)
 - [External API](external-api/) (4 operators)
@@ -63,4 +61,4 @@ tags: [operators, reference, index]
   - [Financial](visualization/financial/) (5 operators)
   - [Media](visualization/media/) (4 operators)
   - [Advanced](visualization/advanced/) (2 operators)
-- [Control Block](control-block/) (2 operators)
+- [Control Block](control-block/) (4 operators)

@@ -18,26 +18,24 @@
 -->
 
 ---
-title: "Training: Bagging Training"
-description: "Sklearn Training: Bagging Training Operator"
-category: "Sklearn Training"
-operator_type: "SklearnTrainingBagging"
-tags: [machine-learning, sklearn, sklearn-training]
+title: "Loop End"
+description: "Close a loop body and decide whether to iterate again based on a condition; pairs with Loop Start."
+category: "Control Block"
+operator_type: "LoopEnd"
+tags: [control-block]
 ---
 
-[Home](../../../../) > [Machine Learning](../../../) > [Sklearn](../../) > [Sklearn Training](../)
+[Home](../../) > [Control Block](../)
 
 ### Input Properties
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Target Attribute | ✓ | String | - | Attribute in your dataset corresponding to target |
-| Count Vectorizer |  | Boolean | false | Convert a collection of text documents to a<br>matrix of token counts |
-| ↳ Text Attribute |  | String | - | Attribute in your dataset with text to vectorize |
-| ↳ Tfidf Transformer |  | Boolean | false | Transform a count matrix to a normalized tf or<br>tf-idf representation |
+| Update | ✓ | String | i += 1 |  |
+| Condition | ✓ | String | i < len(table) |  |
 
 ### Output Ports
 
 | Port | Mode |
 |------|------|
-| 0 | [Set Snapshot](../../../../output-modes/#set-snapshot) |
+| 0 | [Set Snapshot](../../output-modes/#set-snapshot) |

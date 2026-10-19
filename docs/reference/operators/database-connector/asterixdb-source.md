@@ -19,7 +19,7 @@
 
 ---
 title: "AsterixDB Source"
-description: "Read data from a AsterixDB instance"
+description: "Read data from an AsterixDB instance"
 category: "Database Connector"
 operator_type: "AsterixDBSource"
 tags: [database-connector]
@@ -55,7 +55,7 @@ tags: [database-connector]
 | ↳ Predicates |  | List<Filter Predicate> | - | Multiple predicates in OR |
 | &nbsp;&nbsp;↳ Attribute | ✓ | String | - |  |
 | &nbsp;&nbsp;↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |
-| &nbsp;&nbsp;↳ Value |  | String | - |  |
+| &nbsp;&nbsp;↳ Value |  | String | - | Hidden when `Condition` matches<br>`is null\|is not null` |
 
 ### Output Ports
 

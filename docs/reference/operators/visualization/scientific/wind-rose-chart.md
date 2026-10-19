@@ -31,7 +31,7 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Radial Values (r) | ✓ | String | - | Numeric values representing magnitude (e.g.,<br>frequency) |
+| Radial Values (r) | ✓ | String (integer, long, double) | - | Numeric values representing magnitude (e.g.,<br>frequency) |
 | Angular Values (θ) | ✓ | String | - | Direction or angle categories (e.g., N, NE, E) |
 | Color Group |  | String | - | Optional grouping column (e.g., wind strength) |
 

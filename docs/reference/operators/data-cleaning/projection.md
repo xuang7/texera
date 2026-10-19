@@ -32,7 +32,7 @@ tags: [data-cleaning]
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
 | Drop Option | ✓ | Boolean | false | Check to drop the selected attributes |
-| Attributes | ✓ | List<Attribute Unit> | - |  |
+| Attributes |  | List<Attribute Unit> | - |  |
 | ↳ Attribute | ✓ | String | - | Attribute name in the schema |
 | ↳ Alias |  | String | - | Renamed attribute name |
 

@@ -31,7 +31,7 @@ tags: [visualization, statistical]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Selected Attributes | ✓ | List | - | The axes of each scatter plot in the matrix |
+| Selected Attributes | ✓ | List<String> (integer, long, double) | - | The axes of each scatter plot in the matrix |
 | Color Column | ✓ | String | - | Column to color points |
 
 ### Output Ports

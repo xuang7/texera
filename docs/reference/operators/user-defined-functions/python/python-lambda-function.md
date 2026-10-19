@@ -25,7 +25,7 @@ operator_type: "PythonLambdaFunction"
 tags: [user-defined-functions, python]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [Python](../)
+[Home](../../../) > [User-defined Functions](../../) > [Python](../)
 
 ### Input Properties
 
@@ -34,6 +34,7 @@ tags: [user-defined-functions, python]
 | Add/Modify column(s) |  | List<Lambda Attribute Unit> | - |  |
 | ↳ Attribute Name | ✓ | String | - |  |
 | ↳ Expression | ✓ | String | - |  |
+| ↳ New Attribute Name |  | String | - | Hidden when `Attribute Name` matches<br>`(?!Add New Column).*` |
 | ↳ Attribute Type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - |  |
 
 ### Output Ports

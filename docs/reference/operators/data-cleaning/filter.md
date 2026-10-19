@@ -34,7 +34,7 @@ tags: [data-cleaning]
 | Predicates | ✓ | List<Filter Predicate> | - | Multiple predicates in OR |
 | ↳ Attribute | ✓ | String | - |  |
 | ↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |
-| ↳ Value |  | String | - |  |
+| ↳ Value |  | String | - | Hidden when `Condition` matches<br>`is null\|is not null` |
 
 ### Output Ports
 

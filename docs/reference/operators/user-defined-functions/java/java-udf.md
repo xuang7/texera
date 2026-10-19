@@ -25,7 +25,7 @@ operator_type: "JavaUDF"
 tags: [user-defined-functions, java]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [Java](../)
+[Home](../../../) > [User-defined Functions](../../) > [Java](../)
 
 ### Input Properties
 

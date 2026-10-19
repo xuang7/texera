@@ -31,9 +31,9 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| First Parameter Axis Column | ✓ | String | - | Column representing the first parameter axis (a) |
-| Second Parameter Axis Column | ✓ | String | - | Column representing the second parameter axis (b) |
-| Value Column | ✓ | String | - | Column representing the value at each (a, b)<br>coordinate |
+| First Parameter Axis Column | ✓ | String (integer, long, double) | - | Column representing the first parameter axis (a) |
+| Second Parameter Axis Column | ✓ | String (integer, long, double) | - | Column representing the second parameter axis (b) |
+| Value Column | ✓ | String (integer, long, double) | - | Column representing the value at each (a, b)<br>coordinate |
 
 ### Output Ports
 

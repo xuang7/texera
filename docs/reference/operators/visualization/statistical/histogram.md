@@ -33,7 +33,7 @@ tags: [visualization, statistical]
 |----------|-------------|------|---------|-------------|
 | Color Column |  | String | - | Column for differentiating data by its value |
 | SeparateBy Column |  | String | - | Column for separating histogram chart by its value |
-| Distribution Type |  | String | - | Distribution type (rug, box, violin) |
+| Distribution Type |  | String | - | Optional marginal plot to display alongside the<br>histogram |
 | Pattern |  | String | - | Add texture to the chart based on an attribute |
 | Value Column | ✓ | String | - | Column for counting values |
 

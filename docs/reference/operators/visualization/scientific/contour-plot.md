@@ -31,11 +31,11 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Grid Size |  | String | 10 | Grid resolution of the final image |
+| Grid Size |  | Integer | 10 | Grid resolution of the final image |
 | Connect Gaps |  | Boolean | true | Automatically fill in the missing parts |
-| x | ✓ | String | - | The column name of X-axis |
-| y | ✓ | String | - | The column name of Y-axis |
-| z | ✓ | String | - | The column name of color bar |
+| x | ✓ | String (integer, long, double) | - | The column name of X-axis |
+| y | ✓ | String (integer, long, double) | - | The column name of Y-axis |
+| z | ✓ | String (integer, long, double) | - | The column name of color bar |
 | Coloring Method |  | heatmap, lines, none | heatmap |  |
 
 ### Output Ports

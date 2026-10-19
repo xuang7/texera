@@ -31,7 +31,7 @@ tags: [database-connector]
 
 | Operator | Description |
 |----------|-------------|
-| [AsterixDB Source](asterixdb-source/) | Read data from a AsterixDB instance |
+| [AsterixDB Source](asterixdb-source/) | Read data from an AsterixDB instance |
 | [MySQL Source](mysql-source/) | Read data from a MySQL instance |
 | [PostgreSQL Source](postgresql-source/) | Read data from a PostgreSQL instance |
 

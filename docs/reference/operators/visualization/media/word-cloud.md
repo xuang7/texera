@@ -31,7 +31,7 @@ tags: [visualization, media]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Text column | ✓ | String | - |  |
+| Text column | ✓ | String (string) | - |  |
 | Number of most frequent words |  | Integer | 100 |  |
 
 ### Output Ports

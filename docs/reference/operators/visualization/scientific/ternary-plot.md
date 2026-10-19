@@ -31,9 +31,9 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Variable 1 | ✓ | String | - | First variable data field |
-| Variable 2 | ✓ | String | - | Second variable data field |
-| Variable 3 | ✓ | String | - | Third variable data field |
+| Variable 1 | ✓ | String (integer, long, double) | - | First variable data field |
+| Variable 2 | ✓ | String (integer, long, double) | - | Second variable data field |
+| Variable 3 | ✓ | String (integer, long, double) | - | Third variable data field |
 | Categorize by Color |  | Boolean | false | Optionally color points using a data field |
 | Color Data Field |  | String | - | Specify the data field to color |
 

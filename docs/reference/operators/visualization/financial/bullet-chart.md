@@ -31,12 +31,12 @@ tags: [visualization, financial]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Value | ✓ | String | - | The actual value to display on the bullet chart |
-| Delta Reference | ✓ | String | - | The reference value for the delta indicator.<br>e.g., 100 |
-| Threshold Value |  | String | - | The performance threshold value. e.g., 100 |
-| Steps |  | List<Step> | [] | Optional: Each step includes a start and end<br>value e.g., 0, 100 |
-| ↳ Start |  | String | - |  |
-| ↳ End |  | String | - |  |
+| Value | ✓ | String (integer, long, double) | - | The actual value to display on the bullet chart |
+| Delta Reference | ✓ | Double | - | The reference value for the delta indicator.<br>e.g., 100 |
+| Threshold Value |  | Double | - | The performance threshold value. e.g., 100 |
+| Steps |  | List<Bullet Chart Step Definition> | - | Optional: Each step includes a start and end<br>value e.g., 0, 100 |
+| ↳ Start |  | Double | - |  |
+| ↳ End |  | Double | - |  |
 
 ### Output Ports
 

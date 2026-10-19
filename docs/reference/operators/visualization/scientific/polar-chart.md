@@ -31,8 +31,8 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| r | ✓ | String | - | The column name for radial values (must be<br>numeric) |
-| theta | ✓ | String | - | The column name for angular values (must be<br>numeric) |
+| r | ✓ | String (integer, long, double) | - | The column name for radial values (must be<br>numeric) |
+| theta | ✓ | String (integer, long, double) | - | The column name for angular values (must be<br>numeric) |
 
 ### Output Ports
 

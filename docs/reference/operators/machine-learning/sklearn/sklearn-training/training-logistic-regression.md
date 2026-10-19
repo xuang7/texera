@@ -33,8 +33,8 @@ tags: [machine-learning, sklearn, sklearn-training]
 |----------|-------------|------|---------|-------------|
 | Target Attribute | ✓ | String | - | Attribute in your dataset corresponding to target |
 | Count Vectorizer |  | Boolean | false | Convert a collection of text documents to a<br>matrix of token counts |
-| ↳ Text Attribute |  | String | - | Attribute in your dataset with text to vectorize |
-| ↳ Tfidf Transformer |  | Boolean | false | Transform a count matrix to a normalized tf or<br>tf-idf representation |
+| ↳ Text Attribute |  | List<String> (string) | - | Attributes in your dataset with text to<br>vectorize. Hidden when `Count Vectorizer` is<br>`false` |
+| ↳ Tfidf Transformer |  | Boolean | false | Transform a count matrix to a normalized tf or<br>tf-idf representation. Hidden when<br>`Count Vectorizer` is `false` |
 
 ### Output Ports
 

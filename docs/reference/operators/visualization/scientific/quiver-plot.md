@@ -31,10 +31,10 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| x | ✓ | String | - | Column for the x-coordinate of the starting point |
-| y | ✓ | String | - | Column for the y-coordinate of the starting point |
-| u | ✓ | String | - | Column for the vector component in the x-direction |
-| v | ✓ | String | - | Column for the vector component in the y-direction |
+| x | ✓ | String (integer, long, double) | - | Column for the x-coordinate of the starting point |
+| y | ✓ | String (integer, long, double) | - | Column for the y-coordinate of the starting point |
+| u | ✓ | String (integer, long, double) | - | Column for the vector component in the x-direction |
+| v | ✓ | String (integer, long, double) | - | Column for the vector component in the y-direction |
 
 ### Output Ports
 
