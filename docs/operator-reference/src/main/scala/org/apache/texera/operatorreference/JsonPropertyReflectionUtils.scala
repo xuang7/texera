@@ -88,11 +88,14 @@ object JsonPropertyReflectionUtils {
     val properties = extractProperties(clazz, rootPath)
     if (properties.isEmpty) return None
 
-    def renderRows(property: DocProperty, depth: Int): List[String] = {
+    def escapeCell(s: String) = s.replace("\n", " ").replace("\r", " ").replace("|", "\\|")
+    def renderRows(p: DocProperty, depth: Int): List[String] = {
       val indent = if (depth == 0) "" else "&nbsp;&nbsp;" * (depth - 1) + "↳ "
-      formatRow(indent + property.displayName, property) :: property.children.flatMap(
-        renderRows(_, depth + 1)
-      )
+      val requirement = if (p.required) "✓" else ""
+      val row =
+        s"| ${escapeCell(indent + p.displayName)} | $requirement | ${escapeCell(p.dataType)} | " +
+          s"${escapeCell(p.defaultValue)} | ${escapeCell(p.description)} |"
+      row :: p.children.flatMap(renderRows(_, depth + 1))
     }
     val table =
       ("| Property | Requirement | Type | Default | Description |" ::
@@ -160,7 +163,11 @@ object JsonPropertyReflectionUtils {
         .find(t => toggledFields(t).exists(n => n == field.getName || n == jsonName(field)))
         .orElse {
           hideRule(field).collect {
-            case HideRule(target, HideEquals, _) => byJsonName.get(target).filter(isBoolean)
+            case HideRule(target, HideEquals, _) =>
+              byJsonName.get(target).filter { t =>
+                Set[Class[_]](classOf[Boolean], classOf[java.lang.Boolean])
+                  .exists(b => t.getType == b || contentAs(t).contains(b))
+              }
           }.flatten
         }
 
@@ -178,7 +185,9 @@ object JsonPropertyReflectionUtils {
         isRequired(field),
         dataType,
         if (template.isDefined) "`See template below`" else defaultValue(field, instance),
-        (description(field, clazz) ++ hideNote).reduceOption(joinSentences).getOrElse(""),
+        (description(field, clazz) ++ hideNote)
+          .reduceOption((a, b) => if (a.endsWith(".") || a.endsWith(")")) s"$a $b" else s"$a. $b")
+          .getOrElse(""),
         children,
         template
       )
@@ -190,9 +199,6 @@ object JsonPropertyReflectionUtils {
       property.copy(children = property.children ++ toggled)
     }
   }
-
-  private def joinSentences(a: String, b: String): String =
-    if (a.endsWith(".") || a.endsWith(")")) s"$a $b" else s"$a. $b"
 
   private def targetLabel(target: String, byJsonName: Map[String, Field]): String =
     s"`${byJsonName.get(target).map(displayName).getOrElse(target)}`"
@@ -248,13 +254,11 @@ object JsonPropertyReflectionUtils {
     findAnnotation(field, classOf[JsonProperty])
       .map(_.defaultValue())
       .filter(v => v.nonEmpty && v != "\u0000")
-      .orElse(instance.flatMap(inst => Try(readField(field, inst)).toOption).flatMap(formatDefault))
+      .orElse(instance.flatMap { inst =>
+        field.setAccessible(true)
+        Try(field.get(inst)).toOption.flatMap(formatDefault)
+      })
       .getOrElse("-")
-
-  private def readField(field: Field, instance: AnyRef): Any = {
-    field.setAccessible(true)
-    field.get(instance)
-  }
 
   private def formatDefault(value: Any): Option[String] =
     value match {
@@ -295,10 +299,6 @@ object JsonPropertyReflectionUtils {
         expected <- strings.get(HideAnnotation.hideExpectedValue)
       } yield HideRule(target, hideType, expected)
     }
-
-  private def isBoolean(field: Field): Boolean =
-    Set[Class[_]](classOf[Boolean], classOf[java.lang.Boolean])
-      .exists(b => field.getType == b || contentAs(field).contains(b))
 
   private def toggledFields(field: Field): List[String] =
     findAnnotation(field, classOf[JsonSchemaInject]).toList.flatMap { inject =>
@@ -478,10 +478,4 @@ object JsonPropertyReflectionUtils {
       .filter(_.nonEmpty)
       .map(w => s"${w.head.toUpper}${w.tail}")
       .mkString(" ")
-
-  private def formatRow(name: String, p: DocProperty): String = {
-    def escapeCell(s: String) = s.replace("\n", " ").replace("\r", " ").replace("|", "\\|")
-    val requirement = if (p.required) "✓" else ""
-    s"| ${escapeCell(name)} | $requirement | ${escapeCell(p.dataType)} | ${escapeCell(p.defaultValue)} | ${escapeCell(p.description)} |"
-  }
 }
