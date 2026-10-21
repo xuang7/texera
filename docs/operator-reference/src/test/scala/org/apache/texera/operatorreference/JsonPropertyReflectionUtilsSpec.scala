@@ -38,15 +38,15 @@ class JsonPropertyReflectionUtilsSpec extends AnyFlatSpec with Matchers {
   private def table(clazz: Class[_]): String =
     JsonPropertyReflectionUtils.generatePropertiesTable(clazz, "../../").get
 
-  "generatePropertiesTable" should "inline a nested config class under its list property" in {
+  "generatePropertiesTable" should "inline a nested config class and wrap long cells" in {
     val rows = table(classOf[SpecializedFilterOpDesc]).linesIterator.toList
     rows should contain(
       "| Predicates | ✓ | List<Filter Predicate> | - | Multiple predicates in OR |"
     )
-    rows should contain("| ↳ Attribute | ✓ | Column | - |  |")
-    rows should contain("| ↳ Condition | ✓ | =, >, >=, <, <=, !=, is null, is not null | - |  |")
+    rows should contain("| ↳ Attribute | ✓ | String | - |  |")
+    rows should contain("| ↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |")
     rows should contain(
-      "| ↳ Value |  | String | - | Hidden when `Condition` matches `is null\\|is not null` |"
+      "| ↳ Value |  | String | - | Hidden when `Condition` matches `is null\\|is not<br>null` |"
     )
   }
 
@@ -58,7 +58,7 @@ class JsonPropertyReflectionUtilsSpec extends AnyFlatSpec with Matchers {
   it should "nest the fields a toggleHidden switch reveals and resolve Option element types" in {
     val rows = table(classOf[PostgreSQLSourceOpDesc]).linesIterator.toList
     rows should contain("| Limit |  | Long | - | Max output count |")
-    rows.indexOf("| ↳ Keyword Search Column |  | Column | - |  |") shouldBe
+    rows.indexOf("| ↳ Keyword Search Column |  | String | - |  |") shouldBe
       rows.indexOf("| Keyword Search? |  | Boolean | false |  |") + 1
   }
 

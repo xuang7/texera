@@ -36,16 +36,12 @@ import com.kjetland.jackson.jsonSchema.annotations.{
 }
 import org.apache.texera.amber.core.workflow.OutputPort.OutputMode
 import org.apache.texera.amber.operator.LogicalOp
+import org.apache.texera.amber.operator.metadata.OperatorMetadataGenerator
 import org.apache.texera.amber.operator.machineLearning.sklearnAdvanced.base.{
   HyperParameters,
   ParamClass
 }
-import org.apache.texera.amber.operator.metadata.annotations.{
-  AutofillAttributeName,
-  AutofillAttributeNameList,
-  AutofillAttributeNameOnPort1,
-  HideAnnotation
-}
+import org.apache.texera.amber.operator.metadata.annotations.HideAnnotation
 
 import java.lang.annotation.Annotation
 import java.lang.reflect.{Field, Modifier, ParameterizedType}
@@ -94,7 +90,7 @@ object JsonPropertyReflectionUtils {
       val requirement = if (p.required) "✓" else ""
       val row =
         s"| ${escapeCell(indent + p.displayName)} | $requirement | ${escapeCell(p.dataType)} | " +
-          s"${escapeCell(p.defaultValue)} | ${escapeCell(p.description)} |"
+          s"${escapeCell(p.defaultValue)} | ${wrap(escapeCell(p.description), 50, " ")} |"
       row :: p.children.flatMap(renderRows(_, depth + 1))
     }
     val table =
@@ -204,6 +200,7 @@ object JsonPropertyReflectionUtils {
     s"`${byJsonName.get(target).map(displayName).getOrElse(target)}`"
 
   private def documentableFields(clazz: Class[_]): List[Field] = {
+    val schemaOrder = schemaPropertyOrder(clazz)
     val chain = Iterator
       .iterate[Class[_]](clazz)(_.getSuperclass)
       .takeWhile(c => c != null && c != classOf[Object] && c != classOf[LogicalOp])
@@ -229,10 +226,14 @@ object JsonPropertyReflectionUtils {
       .values
       .map(_.last)
       .toList
-      .sortBy(f =>
-        chain.indexOf(f.getDeclaringClass) -> f.getDeclaringClass.getDeclaredFields.indexOf(f)
-      )
+      .sortBy(f => schemaOrder.indexOf(jsonName(f)))
   }
+
+  // The property panel lists properties in the JSON schema's order, so the pages do too.
+  private def schemaPropertyOrder(clazz: Class[_]): List[String] =
+    Try(OperatorMetadataGenerator.jsonSchemaGenerator.generateJsonSchema(clazz)).toOption
+      .map(_.path("properties").fieldNames().asScala.toList)
+      .getOrElse(Nil)
 
   private def jsonName(field: Field): String =
     findAnnotation(field, classOf[JsonProperty])
@@ -319,7 +320,7 @@ object JsonPropertyReflectionUtils {
     findAnnotation(field, classOf[JsonPropertyDescription])
       .filter(_.value().equalsIgnoreCase("Input your code here"))
       .flatMap(_ => findAnnotation(field, classOf[JsonProperty]))
-      .map(_.defaultValue().linesIterator.map(_.replaceAll("\\s+$", "")).mkString("\n"))
+      .map(_.defaultValue())
       .filter(_.nonEmpty)
 
   // Mirrors the frontend's CodeEditorComponent, which picks the language by operator type.
@@ -333,17 +334,17 @@ object JsonPropertyReflectionUtils {
       owner: Class[_],
       rootPath: String
   ): (String, List[DocProperty]) = {
-    if (findAnnotation(field, classOf[AutofillAttributeNameList]).isDefined) {
-      return ("List<Column>", Nil)
-    }
-    if (
-      findAnnotation(field, classOf[AutofillAttributeName]).isDefined ||
-      findAnnotation(field, classOf[AutofillAttributeNameOnPort1]).isDefined
-    ) {
-      val accepted = attributeTypeRules(owner).getOrElse(jsonName(field), Nil)
-      return (if (accepted.isEmpty) "Column" else s"Column (${accepted.mkString(", ")})", Nil)
-    }
     if (codeTemplate(field).isDefined) return (s"Code (${codeLanguage(owner)})", Nil)
+    val accepted = attributeTypeRules(owner).getOrElse(jsonName(field), Nil)
+    val (dataType, children) = plainTypeAndChildren(field, owner, rootPath)
+    (if (accepted.isEmpty) dataType else s"$dataType (${accepted.mkString(", ")})", children)
+  }
+
+  private def plainTypeAndChildren(
+      field: Field,
+      owner: Class[_],
+      rootPath: String
+  ): (String, List[DocProperty]) = {
 
     val raw = field.getType
     val typeArgs = field.getGenericType match {
@@ -394,10 +395,10 @@ object JsonPropertyReflectionUtils {
     val jsonValue = enumClass.getMethods.find { m =>
       m.getAnnotation(classOf[JsonValue]) != null && m.getParameterCount == 0
     }
-    enumConstants(enumClass)
+    val options = enumConstants(enumClass)
       .map(c => jsonValue.flatMap(m => Try(m.invoke(c).toString).toOption).getOrElse(c.toString))
       .filter(_.nonEmpty)
-      .mkString(", ")
+    wrap(options.mkString(", "), 40, ", ")
   }
 
   private def isNestedConfig(c: Class[_]): Boolean =
@@ -462,6 +463,15 @@ object JsonPropertyReflectionUtils {
     owner.getMethods
       .find(m => m.getName == getter && m.getParameterCount == 0)
       .flatMap(m => Option(m.getAnnotation(annotation)))
+  }
+
+  // Breaks a cell longer than `width` at the last separator before it, so it does not stretch
+  // the table on the site.
+  private def wrap(text: String, width: Int, separator: String): String = {
+    val cut = if (text.length <= width) -1 else text.lastIndexOf(separator, width - 1)
+    if (cut <= 0) text
+    else
+      s"${text.take(cut)}${separator.trim}<br>${wrap(text.drop(cut + separator.length), width, separator)}"
   }
 
   private def enumConstants(enumClass: Class[_]): List[AnyRef] =
