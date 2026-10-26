@@ -466,9 +466,16 @@ object JsonPropertyReflectionUtils {
   }
 
   // Breaks a cell longer than `width` at the last separator before it, so it does not stretch
-  // the table on the site.
+  // the table on the site. Never breaks inside a code span, where <br> would show literally.
   private def wrap(text: String, width: Int, separator: String): String = {
-    val cut = if (text.length <= width) -1 else text.lastIndexOf(separator, width - 1)
+    val cut =
+      if (text.length <= width) -1
+      else
+        Iterator
+          .iterate(text.lastIndexOf(separator, width - 1))(i => text.lastIndexOf(separator, i - 1))
+          .takeWhile(_ > 0)
+          .find(i => text.take(i).count(_ == '`') % 2 == 0)
+          .getOrElse(-1)
     if (cut <= 0) text
     else
       s"${text.take(cut)}${separator.trim}<br>${wrap(text.drop(cut + separator.length), width, separator)}"

@@ -46,7 +46,7 @@ class JsonPropertyReflectionUtilsSpec extends AnyFlatSpec with Matchers {
     rows should contain("| ↳ Attribute | ✓ | String | - |  |")
     rows should contain("| ↳ Condition | ✓ | =, >, >=, <, <=, !=, is null,<br>is not null | - |  |")
     rows should contain(
-      "| ↳ Value |  | String | - | Hidden when `Condition` matches `is null\\|is not<br>null` |"
+      "| ↳ Value |  | String | - | Hidden when `Condition` matches<br>`is null\\|is not null` |"
     )
   }
 
