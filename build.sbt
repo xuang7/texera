@@ -127,7 +127,10 @@ lazy val Config = (project in file("common/config")).settings(commonModuleSettin
 // on Config to read OTEL_* settings from observability.conf.
 lazy val Observability =
   (project in file("common/observability")).settings(commonModuleSettings).dependsOn(Config)
-lazy val Resource = (project in file("common/resource")).settings(commonModuleSettings).dependsOn(DAO)
+lazy val Resource = (project in file("common/resource"))
+  .settings(commonModuleSettings)
+  .dependsOn(DAO, Auth)
+  .dependsOn(DAO % "test->test") // reuse MockTexeraDB embedded Postgres in tests
 lazy val Auth = (project in file("common/auth"))
   .settings(commonModuleSettings)
   .configs(Test)
