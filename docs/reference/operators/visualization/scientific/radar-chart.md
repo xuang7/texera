@@ -32,7 +32,7 @@ tags: [visualization, scientific]
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
 | Name Column | ✓ | String | - | Column containing entity names for each radar |
-| Value Columns | ✓ | List | - | Columns containing numeric values for radar chart<br>axes |
+| Value Columns | ✓ | List<String> (integer, long, double) | - | Columns containing numeric values for radar chart<br>axes |
 | Fill Opacity | ✓ | Double | 0.5 | Opacity value for radar chart fill from 0.0<br>(transparent) to 1.0 (opaque) |
 
 ### Output Ports

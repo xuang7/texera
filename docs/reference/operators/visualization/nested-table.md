@@ -31,7 +31,7 @@ tags: [visualization]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Add Attribute | ✓ | List<Attribute> | - | List of columns to include in the nested table<br>chart and their subgroup |
+| Add Attribute | ✓ | List<Nested Table Config> | - | List of columns to include in the nested table<br>chart and their subgroup |
 | ↳ Attribute group | ✓ | String | - |  |
 | ↳ Original attribute Name | ✓ | String | - |  |
 | ↳ New Attribute Name |  | String | - |  |

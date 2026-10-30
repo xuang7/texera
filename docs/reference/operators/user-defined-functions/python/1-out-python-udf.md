@@ -25,7 +25,7 @@ operator_type: "PythonUDFSourceV2"
 tags: [user-defined-functions, python]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [Python](../)
+[Home](../../../) > [User-defined Functions](../../) > [Python](../)
 
 ### Input Properties
 
@@ -33,10 +33,15 @@ tags: [user-defined-functions, python]
 |----------|-------------|------|---------|-------------|
 | Python script | ✓ | Code (python) | `See template below` | Input your code here |
 | Worker count | ✓ | Integer | 1 | Specify how many parallel workers to launch |
+| Default Python Environment | ✓ | Boolean | true | Use Default Python Environment |
+| Virtual Environment |  | String | - | Python Environment you would like this UDF to be<br>executed within |
 | Columns |  | List<Attribute> | - | The columns of the source |
 | ↳ Attribute Name | ✓ | String | - |  |
 | ↳ Attribute Type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - |  |
-| Parameters |  | List<UiUDFParameter> | - | Values inferred from active `self.UiParameter(...)` calls.<br>See [UI parameters](../#ui-parameters). |
+| Parameters |  | List<Ui UDF Parameter> | - | Parameters inferred from active<br>self.UiParameter(...) calls in the Python script |
+| ↳ Attribute | ✓ | Attribute | - |  |
+| ↳ Value |  | String | - |  |
+| ↳ Input type |  | String | - |  |
 
 #### Default Code Template
 
@@ -45,8 +50,9 @@ tags: [user-defined-functions, python]
 ```python
 # Define UiParameter inside GenerateOperator.open().
 # Example: self.count = self.UiParameter("count", AttributeType.INT).value
+# Add value=Resource.MODEL or Resource.DATASET to pick a version; the value is its mount directory.
 # See the Python UDF operator documentation for supported types and behavior.
-#
+# 
 # from pytexera import *
 # class GenerateOperator(UDFSourceOperator):
 # 

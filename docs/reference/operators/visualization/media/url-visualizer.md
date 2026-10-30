@@ -31,7 +31,7 @@ tags: [visualization, media]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| URL content | ✓ | String | - |  |
+| URL content | ✓ | String (string) | - |  |
 
 ### Output Ports
 

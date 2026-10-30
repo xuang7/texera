@@ -35,12 +35,12 @@ This parameter set is used by the following operators:
 
 ## Parameters
 
-| Parameter | Type |
-|-----------|------|
-| n_neighbors | `int` |
-| p | `int` |
-| weights | `str` |
-| algorithm | `str` |
-| leaf_size | `int` |
-| metric | `int` |
-| metric_params | `str` |
+| Parameter | Type | Default | Allowed values |
+|-----------|------|---------|----------------|
+| n_neighbors | `int` | 5 | >=1 |
+| p | `int` | 2 | >0 |
+| weights | `str` | - | uniform, distance |
+| algorithm | `str` | - | auto, ball_tree, kd_tree, brute |
+| leaf_size | `int` | 30 | >=1 |
+| metric | `str` | minkowski | minkowski, euclidean, manhattan, chebyshev, cityblock, l1, l2 |
+| metric_params | `json.loads` | {} | - |

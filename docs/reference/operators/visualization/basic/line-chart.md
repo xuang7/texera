@@ -33,9 +33,9 @@ tags: [visualization, basic]
 |----------|-------------|------|---------|-------------|
 | Y Label |  | String | Y Axis | The label for y axis |
 | X Label |  | String | X Axis | The label for x axis |
-| Lines | ✓ | List<Line> | - |  |
-| ↳ Y Value | ✓ | String | - | Value for y axis |
-| ↳ X Value | ✓ | String | - | Value for x axis |
+| Lines | ✓ | List<Line Config> | - |  |
+| ↳ Y Value | ✓ | String (integer, long, double) | - | Value for y axis |
+| ↳ X Value | ✓ | String (integer, long, double) | - | Value for x axis |
 | ↳ Line Mode | ✓ | line, dots, line with dots | line with dots |  |
 | ↳ Line Name |  | String | - |  |
 | ↳ Line Color |  | String | - | Must be a valid CSS color or hex color string |

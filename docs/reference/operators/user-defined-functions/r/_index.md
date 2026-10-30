@@ -31,7 +31,7 @@ tags: [user-defined-functions, r]
 
 | Operator | Description |
 |----------|-------------|
-| [R UDF](r-udf/) | User-defined function operator in R script |
 | [1-out R UDF](1-out-r-udf/) | User-defined function operator in R script |
+| [R UDF](r-udf/) | User-defined function operator in R script |
 
 **Total**: 2 operators

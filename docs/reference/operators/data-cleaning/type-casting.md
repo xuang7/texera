@@ -31,7 +31,7 @@ tags: [data-cleaning]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| TypeCasting Units | ✓ | List<Unit> | - | Multiple type castings |
+| TypeCasting Units | ✓ | List<Type Casting Unit> | - | Multiple type castings |
 | ↳ Attribute | ✓ | String | - | Attribute for type casting |
 | ↳ Cast type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - | Result type after type casting |
 

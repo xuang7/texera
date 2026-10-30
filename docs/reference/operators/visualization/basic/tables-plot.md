@@ -31,7 +31,7 @@ tags: [visualization, basic]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Add Attribute | ✓ | List<Table> | - | List of columns to include in the table chart |
+| Add Attribute | ✓ | List<Tables Config> | - | List of columns to include in the table chart |
 | ↳ Attribute Name | ✓ | String | - |  |
 
 ### Output Ports

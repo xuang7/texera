@@ -31,9 +31,10 @@ tags: [machine-learning, hugging-face]
 
 | Operator | Description |
 |----------|-------------|
+| [Hugging Face](hugging-face/) | Call a Hugging Face model via the Inference API |
 | [Hugging Face Iris Logistic Regression](hugging-face-iris-logistic-regression/) | Predict whether an iris is an Iris-setosa using a pre-trained logistic regression model |
 | [Hugging Face Sentiment Analysis](hugging-face-sentiment-analysis/) | Analyzing Sentiments with a Twitter-Based Model from Hugging Face |
 | [Hugging Face Spam Detection](hugging-face-spam-detection/) | Spam Detection by SMS Spam Detection Model from Hugging Face |
 | [Hugging Face Text Summarization](hugging-face-text-summarization/) | Summarize the given text content with a mini2bert pre-trained model from Hugging Face |
 
-**Total**: 4 operators
+**Total**: 5 operators

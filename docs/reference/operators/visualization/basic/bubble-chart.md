@@ -33,9 +33,9 @@ tags: [visualization, basic]
 |----------|-------------|------|---------|-------------|
 | X-Column | ✓ | String | - | Data column for the x-axis |
 | Y-Column | ✓ | String | - | Data column for the y-axis |
-| Z-Column | ✓ | String | - | Data column to determine bubble size |
+| Z-Column | ✓ | String (integer, long, double) | - | Data column to determine bubble size |
 | Enable Color |  | Boolean | false | Colors bubbles using a data column |
-| Color-Column |  | String | - | Optional data column to color bubbles with; leave<br>empty for uniform bubbles |
+| ↳ Color-Column |  | String | - | Optional data column to color bubbles with; leave<br>empty for uniform bubbles |
 
 ### Output Ports
 

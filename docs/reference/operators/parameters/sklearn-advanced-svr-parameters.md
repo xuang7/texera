@@ -34,16 +34,16 @@ This parameter set is used by the following operators:
 
 ## Parameters
 
-| Parameter | Type |
-|-----------|------|
-| C | `float` |
-| kernel | `str` |
-| gamma | `float` |
-| degree | `int` |
-| coef0 | `float` |
-| tol | `float` |
-| shrinking | `(lambda value: value.lower() == "true")` |
-| verbose | `(lambda value: value.lower() == "true")` |
-| epsilon | `float` |
-| cache_size | `int` |
-| max_iter | `int` |
+| Parameter | Type | Default | Allowed values |
+|-----------|------|---------|----------------|
+| C | `float` | 1.0 | >0 |
+| kernel | `str` | - | rbf, linear, poly, sigmoid, precomputed |
+| gamma | `(lambda value: value.strip() if value.strip() in ("scale", "auto") else float(value))` | scale | - |
+| degree | `int` | 3 | >=0 |
+| coef0 | `float` | 0.0 | - |
+| tol | `float` | 0.001 | >0 |
+| shrinking | `(lambda value: value.lower() == "true")` | - | true, false |
+| verbose | `(lambda value: value.lower() == "true")` | - | false, true |
+| epsilon | `float` | 0.1 | >=0 |
+| cache_size | `int` | 200 | >0 |
+| max_iter | `int` | -1 | >=-1 |

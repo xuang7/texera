@@ -25,7 +25,7 @@ operator_type: "URLFetcher"
 tags: [external-api]
 ---
 
-[Home](../../) > [External Api](../)
+[Home](../../) > [External API](../)
 
 ### Input Properties
 

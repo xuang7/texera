@@ -31,7 +31,7 @@ tags: [machine-learning, hugging-face]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Attribute | ✓ | String | - | Column to perform spam detection on |
+| Attribute | ✓ | String (string) | - | Column to perform spam detection on |
 | Spam Result Attribute | ✓ | String | is_spam | Column name of whether spam or not |
 | Score Result Attribute | ✓ | String | score | Column name of Probability for classification |
 

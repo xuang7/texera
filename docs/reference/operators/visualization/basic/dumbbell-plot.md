@@ -36,7 +36,7 @@ tags: [visualization, basic]
 | Dumbbell End Value | ✓ | String | - | The end value of each dumbbell |
 | Measurement Column Name | ✓ | String (integer, long, double) | - | The name of the measurement column |
 | Compared Column Name | ✓ | String | - | The column name that is being compared |
-| Dots |  | List<Dumbbell Dot> | - |  |
+| Dots |  | List<Dumbbell Dot Config> | - |  |
 | ↳ Dot Column Value | ✓ | String (integer, long, double) | - | Value for dot axis |
 | Show Legends? |  | Boolean | false | Whether to show legends in the graph |
 

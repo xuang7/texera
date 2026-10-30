@@ -32,7 +32,7 @@ tags: [visualization, financial]
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
 | X Axis Values | ✓ | String | - | The column representing categories or stages |
-| Y Axis Values | ✓ | String | - | The column representing numeric values for each<br>stage |
+| Y Axis Values | ✓ | String (integer, long, double) | - | The column representing numeric values for each<br>stage |
 
 ### Output Ports
 

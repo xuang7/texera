@@ -31,10 +31,10 @@ tags: [visualization, scientific]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Variable 1 | ✓ | String | - | First variable data field |
-| Variable 2 | ✓ | String | - | Second variable data field |
-| Variable 3 | ✓ | String | - | Third variable data field |
-| Measured Value | ✓ | String | - | Measured value data field |
+| Variable 1 | ✓ | String (integer, long, double) | - | First variable data field |
+| Variable 2 | ✓ | String (integer, long, double) | - | Second variable data field |
+| Variable 3 | ✓ | String (integer, long, double) | - | Third variable data field |
+| Measured Value | ✓ | String (integer, long, double) | - | Measured value data field |
 
 ### Output Ports
 

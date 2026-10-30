@@ -31,7 +31,7 @@ tags: [visualization, basic]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Y-axis | ✓ | String | - | The name of the column to represent y-axis |
+| Y-axis | ✓ | String (integer, long, double) | - | The name of the column to represent y-axis |
 | X-axis | ✓ | String | - | The name of the column to represent the x-axis |
 | Handle Duplicates |  | Nothing, Mean, Sum | NOTHING | How to handle duplicate values in y-axis |
 
