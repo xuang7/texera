@@ -31,9 +31,11 @@ tags: [visualization, basic]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Hierarchy Path | ✓ | List<Hierarchy Section> | - | Hierarchy of attributes from a root (higher-level<br>category) to leaves (lower-level category) |
+| Hierarchy Path | ✓ | List\<Hierarchy Section\> | - | Hierarchy of attributes from a root (higher-level<br>category) to leaves (lower-level category) |
 | ↳ Attribute Name | ✓ | String | - |  |
 | Value Column | ✓ | String (integer, long, double) | - | The value associated with the size of each sector<br>in the chart |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

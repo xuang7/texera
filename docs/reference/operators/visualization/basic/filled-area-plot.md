@@ -33,7 +33,7 @@ tags: [visualization, basic]
 |----------|-------------|------|---------|-------------|
 | X-axis Attribute | ✓ | String | - | The attribute for your x-axis |
 | Y-axis Attribute | ✓ | String | - | The attribute for your y-axis |
-| Line Group |  | String | - | The attribute for group of each line |
+| Line Group | ✓ when `Split Plot by Line Group` is true | String | - | The attribute for group of each line |
 | Color |  | String | - | Choose an attribute to color the plot |
 | Split Plot by Line Group | ✓ | Boolean | false | Do you want to split the graph |
 | Pattern |  | String | - | Add texture to the chart based on an attribute |

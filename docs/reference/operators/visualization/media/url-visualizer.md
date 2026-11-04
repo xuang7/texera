@@ -31,7 +31,9 @@ tags: [visualization, media]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| URL content | ✓ | String | - |  |
+| URL content | ✓ | String (string) | - |  |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

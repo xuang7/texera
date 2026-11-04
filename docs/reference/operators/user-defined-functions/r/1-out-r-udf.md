@@ -25,7 +25,7 @@ operator_type: "RUDFSource"
 tags: [user-defined-functions, r]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [R](../)
+[Home](../../../) > [User-defined Functions](../../) > [R](../)
 
 ### Input Properties
 
@@ -34,7 +34,7 @@ tags: [user-defined-functions, r]
 | R Source UDF Script | ✓ | Code (r) | `See template below` | Input your code here |
 | Worker count | ✓ | Integer | 1 | Specify how many parallel workers to launch |
 | Use Tuple API? | ✓ | Boolean | false | Check this box to use Tuple API, leave unchecked<br>to use Table API |
-| Columns |  | List<Attribute> | - | The columns of the source |
+| Columns |  | List\<Attribute\> | - | The columns of the source |
 | ↳ Attribute Name | ✓ | String | - |  |
 | ↳ Attribute Type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - |  |
 

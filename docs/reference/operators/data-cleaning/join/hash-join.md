@@ -31,7 +31,7 @@ tags: [data-cleaning, join]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Left Input Attribute | ✓ | String | - | Attribute to be joined on the Left Input |
+| Left Input Attribute | ✓ | String | - | Attribute to be joined on the Left Input. Same<br>type as `Right Input Attribute` |
 | Right Input Attribute | ✓ | String | - | Attribute to be joined on the Right Input |
 | Join Type | ✓ | inner, left outer, right outer,<br>full outer | inner | Select the join type to execute |
 

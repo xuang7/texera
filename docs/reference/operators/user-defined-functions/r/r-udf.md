@@ -25,7 +25,7 @@ operator_type: "RUDF"
 tags: [user-defined-functions, r]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [R](../)
+[Home](../../../) > [User-defined Functions](../../) > [R](../)
 
 ### Input Properties
 
@@ -35,7 +35,7 @@ tags: [user-defined-functions, r]
 | Worker count | ✓ | Integer | 1 | Specify how many parallel workers to launch |
 | Use Tuple API? | ✓ | Boolean | false | Check this box to use Tuple API, leave unchecked<br>to use Table API |
 | Retain input columns | ✓ | Boolean | true | Keep the original input columns? |
-| Extra output column(s) |  | List<Attribute> | - | Name of the newly added output columns that the<br>UDF will produce, if any |
+| Extra output column(s) |  | List\<Attribute\> | - | Name of the newly added output columns that the<br>UDF will produce, if any |
 | ↳ Attribute Name | ✓ | String | - |  |
 | ↳ Attribute Type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - |  |
 

@@ -33,15 +33,17 @@ tags: [visualization, statistical]
 |----------|-------------|------|---------|-------------|
 | X Label |  | String | X Axis | Label used for x axis |
 | Y Label |  | String | Y Axis | Label used for y axis |
-| Bands | ✓ | List<Band> | - |  |
+| Bands | ✓ | List\<Band Config\> | - |  |
 | ↳ Y-Axis Upper Bound | ✓ | String | - | Represents upper bound error of y-values |
 | ↳ Y-Axis Lower Bound | ✓ | String | - | Represents lower bound error of y-values |
 | ↳ Fill Color |  | String | - | Must be a valid CSS color or hex color string |
-| ↳ Y Value | ✓ | String | - | Value for y axis |
-| ↳ X Value | ✓ | String | - | Value for x axis |
+| ↳ Y Value | ✓ | String (integer, long, double) | - | Value for y axis |
+| ↳ X Value | ✓ | String (integer, long, double) | - | Value for x axis |
 | ↳ Line Mode | ✓ | line, dots, line with dots | line with dots |  |
 | ↳ Line Name |  | String | - |  |
 | ↳ Line Color |  | String | - | Must be a valid CSS color or hex color string |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

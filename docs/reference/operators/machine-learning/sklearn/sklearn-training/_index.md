@@ -25,14 +25,14 @@ categories: [Operators]
 tags: [machine-learning, sklearn, sklearn-training]
 ---
 
-[Home](../../../) > [Sklearn](../) > Sklearn Training
+[Home](../../../) > [Machine Learning](../../) > [Sklearn](../) > Sklearn Training
 
 ## Operators
 
 | Operator | Description |
 |----------|-------------|
 | [Training: Adaptive Boosting](training-adaptive-boosting/) | Sklearn Training: Adaptive Boosting Operator |
-| [Training: Bagging Training](training-bagging-training/) | Sklearn Training: Bagging Training Operator |
+| [Training: Bagging](training-bagging/) | Sklearn Training: Bagging Operator |
 | [Training: Bernoulli Naive Bayes](training-bernoulli-naive-bayes/) | Sklearn Training: Bernoulli Naive Bayes Operator |
 | [Training: Complement Naive Bayes](training-complement-naive-bayes/) | Sklearn Training: Complement Naive Bayes Operator |
 | [Training: Decision Tree](training-decision-tree/) | Sklearn Training: Decision Tree Operator |
@@ -42,6 +42,7 @@ tags: [machine-learning, sklearn, sklearn-training]
 | [Training: Gaussian Naive Bayes](training-gaussian-naive-bayes/) | Sklearn Training: Gaussian Naive Bayes Operator |
 | [Training: Gradient Boosting](training-gradient-boosting/) | Sklearn Training: Gradient Boosting Operator |
 | [Training: K-nearest Neighbors](training-k-nearest-neighbors/) | Sklearn Training: K-nearest Neighbors Operator |
+| [Training: Linear Perceptron](training-linear-perceptron/) | Sklearn Training: Linear Perceptron Operator |
 | [Training: Linear Regression](training-linear-regression/) | Sklearn Training: Linear Regression Operator |
 | [Training: Linear Support Vector Machine](training-linear-support-vector-machine/) | Sklearn Training: Linear Support Vector Machine Operator |
 | [Training: Logistic Regression](training-logistic-regression/) | Sklearn Training: Logistic Regression Operator |
@@ -50,7 +51,6 @@ tags: [machine-learning, sklearn, sklearn-training]
 | [Training: Multinomial Naive Bayes](training-multinomial-naive-bayes/) | Sklearn Training: Multinomial Naive Bayes Operator |
 | [Training: Nearest Centroid](training-nearest-centroid/) | Sklearn Training: Nearest Centroid Operator |
 | [Training: Passive Aggressive](training-passive-aggressive/) | Sklearn Training: Passive Aggressive Operator |
-| [Training: Linear Perceptron](training-linear-perceptron/) | Sklearn Training: Linear Perceptron Operator |
 | [Training: Probability Calibration](training-probability-calibration/) | Sklearn Training: Probability Calibration Operator |
 | [Training: Random Forest](training-random-forest/) | Sklearn Training: Random Forest Operator |
 | [Training: Ridge Regression](training-ridge-regression/) | Sklearn Training: Ridge Regression Operator |

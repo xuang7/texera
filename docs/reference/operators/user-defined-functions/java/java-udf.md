@@ -25,7 +25,7 @@ operator_type: "JavaUDF"
 tags: [user-defined-functions, java]
 ---
 
-[Home](../../../) > [User Defined Functions](../../) > [Java](../)
+[Home](../../../) > [User-defined Functions](../../) > [Java](../)
 
 ### Input Properties
 
@@ -34,7 +34,7 @@ tags: [user-defined-functions, java]
 | Java UDF script | ✓ | Code (java) | `See template below` | Input your code here |
 | Worker count | ✓ | Integer | 1 | Specify how many parallel workers to launch |
 | Retain input columns | ✓ | Boolean | true | Keep the original input columns? |
-| Extra output column(s) |  | List<Attribute> | - | Name of the newly added output columns that the<br>UDF will produce, if any |
+| Extra output column(s) |  | List\<Attribute\> | - | Name of the newly added output columns that the<br>UDF will produce, if any |
 | ↳ Attribute Name | ✓ | String | - |  |
 | ↳ Attribute Type | ✓ | string, integer, long, double, boolean,<br>timestamp, binary, large_binary | - |  |
 

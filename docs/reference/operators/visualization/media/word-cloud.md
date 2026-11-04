@@ -31,8 +31,10 @@ tags: [visualization, media]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Text column | ✓ | String | - |  |
+| Text column | ✓ | String (string) | - |  |
 | Number of most frequent words |  | Integer | 100 |  |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

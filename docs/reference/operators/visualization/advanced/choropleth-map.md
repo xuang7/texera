@@ -31,8 +31,10 @@ tags: [visualization, advanced]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Locations Column | ✓ | String | - | Column used to describe location. Currently only<br>supports countries and needs to be three-letter<br>ISO country code |
+| Locations Column | ✓ | String (string) | - | Column used to describe location. Currently only<br>supports countries and needs to be three-letter<br>ISO country code |
 | Color Column | ✓ | String (integer, long, double) | - | Column used to determine intensity of color of<br>the region |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

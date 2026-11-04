@@ -34,11 +34,13 @@ tags: [visualization, statistical]
 | Value Column | ✓ | String (integer, long, double) | - | Numeric column used to compute the empirical<br>cumulative distribution |
 | Color Column |  | String | - | Optional column for coloring ECDF lines by group |
 | Separate By Column |  | String | - | Optional column for splitting ECDF plots into<br>subplots |
-| Y Axis Mode |  | String | probability | Display cumulative probability, raw count, or<br>cumulative sum |
-| CDF Mode |  | String | standard | 'standard' shows P(X ≤ x), 'reversed' shows P(X ≥<br>x), 'complementary' shows 1 - P(X ≤ x) |
-| Orientation |  | String | vertical | Plot ECDF vertically or horizontally |
+| Y Axis Mode |  | probability, count, sum | probability | Display cumulative probability, raw count, or<br>cumulative sum |
+| CDF Mode |  | standard, reversed, complementary | standard | 'standard' shows P(X ≤ x), 'reversed' shows P(X ≥<br>x), 'complementary' shows 1 - P(X ≤ x) |
+| Orientation |  | vertical, horizontal | vertical | Plot ECDF vertically or horizontally |
 | Show Markers |  | Boolean | false | Display sample markers on the ECDF line |
-| Marginal Plot |  | String | none | Optional marginal plot to display alongside the<br>ECDF |
+| Marginal Plot |  | none, histogram, rug | none | Optional marginal plot to display alongside the<br>ECDF |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

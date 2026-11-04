@@ -37,6 +37,8 @@ tags: [visualization, basic]
 | Task Column | ✓ | String | - | The name of the task |
 | Color Column |  | String | - | Column to color tasks |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |

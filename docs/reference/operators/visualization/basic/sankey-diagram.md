@@ -33,7 +33,9 @@ tags: [visualization, basic]
 |----------|-------------|------|---------|-------------|
 | Source Attribute | ✓ | String | - | The source node of the Sankey diagram |
 | Target Attribute | ✓ | String | - | The target node of the Sankey diagram |
-| Value Attribute | ✓ | String | - | The value/volume of the flow between source and<br>target |
+| Value Attribute | ✓ | String (integer, long, double) | - | The value/volume of the flow between source and<br>target |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

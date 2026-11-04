@@ -31,7 +31,7 @@ tags: [utilities]
 
 | Property | Requirement | Type | Default | Description |
 |----------|-------------|------|---------|-------------|
-| Delimiter | ✓ | String | , | String that separates the data |
+| Delimiter | ✓ | String | , | Regular expression that separates the data |
 | Attribute | ✓ | String | - | Column of the string to unnest |
 | Result Attribute | ✓ | String | unnestResult | Column name of the unnest result |
 

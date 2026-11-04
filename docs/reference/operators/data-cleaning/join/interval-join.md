@@ -34,9 +34,11 @@ tags: [data-cleaning, join]
 | Interval Constant | ✓ | Long | 10 | Left attri in (right, right + constant) |
 | Include Left Bound | ✓ | Boolean | true | Include condition left attri = right attri |
 | Include Right Bound | ✓ | Boolean | true | Include condition left attri = right attri |
-| Time interval type |  | TimeIntervalType | day | Year, Month, Day, Hour, Minute or Second |
+| Time interval type |  | year, month, day, hour, minute, second | day | Year, Month, Day, Hour, Minute or Second |
 | Left Input attr | ✓ | String (integer, long, double, timestamp) | - | Choose one attribute in the left table |
-| Right Input attr | ✓ | String | - | Choose one attribute in the right table |
+| Right Input attr | ✓ | String | - | Choose one attribute in the right table. Same<br>type as `Left Input attr` |
+
+*Parentheses after a type list the column types a column selector accepts.*
 
 ### Output Ports
 

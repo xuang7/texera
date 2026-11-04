@@ -33,6 +33,7 @@ tags: [search]
 |----------|-------------|------|---------|-------------|
 | attribute | ✓ | String | - | Column to search keyword on |
 | keywords | ✓ | String | - | Keywords |
+| Case Sensitive | ✓ | Boolean | false | Whether the keyword is case sensitive or not |
 
 ### Output Ports
 

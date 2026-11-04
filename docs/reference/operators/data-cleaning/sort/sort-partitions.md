@@ -35,6 +35,8 @@ tags: [data-cleaning, sort]
 | Attribute Domain Min | ✓ | Long | 0 | Minimum value of the domain of the attribute |
 | Attribute Domain Max | ✓ | Long | 0 | Maximum value of the domain of the attribute |
 
+*Parentheses after a type list the column types a column selector accepts.*
+
 ### Output Ports
 
 | Port | Mode |
