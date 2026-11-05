@@ -260,10 +260,6 @@ export class TexeraAgent {
     return chain;
   }
 
-  getStepsById(): Map<string, ReActStep> {
-    return this.stepsById;
-  }
-
   getWorkflowResultState(): WorkflowResultState {
     return this.workflowResultState;
   }
@@ -379,7 +375,7 @@ export class TexeraAgent {
       this.settings.disabledTools = updates.disabledTools;
     }
     if (updates.maxSteps !== undefined) {
-      this.settings.maxSteps = updates.maxSteps;
+      this.settings.maxSteps = Math.max(1, Math.trunc(updates.maxSteps));
     }
     if (updates.allowedOperatorTypes !== undefined) {
       this.settings.allowedOperatorTypes = updates.allowedOperatorTypes;
@@ -554,7 +550,7 @@ export class TexeraAgent {
           if (this.workflowState.getAllOperators().length > 0) {
             try {
               const logicalPlan = this.workflowState.toLogicalPlan();
-              compilationResult = await compileWorkflowAsync(logicalPlan);
+              compilationResult = await compileWorkflowAsync(logicalPlan, this.delegateConfig?.userToken);
             } catch (e: any) {
               this.log.warn({ err: e?.message || e }, "compilation failed; proceeding without schemas");
             }

@@ -223,6 +223,17 @@ describe("TexeraAgent", () => {
       expect(after.maxOperatorResultCharLimit).toBe(before.maxOperatorResultCharLimit);
     });
 
+    test("clamps maxSteps to a minimum of 1 and truncates fractions", () => {
+      agent.updateSettings({ maxSteps: 0 });
+      expect(agent.getSettings().maxSteps).toBe(1);
+
+      agent.updateSettings({ maxSteps: -5 });
+      expect(agent.getSettings().maxSteps).toBe(1);
+
+      agent.updateSettings({ maxSteps: 2.5 });
+      expect(agent.getSettings().maxSteps).toBe(2);
+    });
+
     test("returns a new settings object (mutating primitive fields does not stick)", () => {
       agent.getSettings().maxSteps = 12345;
 
@@ -858,6 +869,22 @@ describe("delegate mode", () => {
       },
     },
   };
+
+  test("compiles with the delegating user's token (compile service is JWT-protected)", async () => {
+    dispatch(okExec);
+    const compileHeaders: unknown[] = [];
+    const routed = fetchSpy.getMockImplementation()!;
+    fetchSpy.mockImplementation((async (u: any, init?: RequestInit) => {
+      if (String(u).includes("/api/compile")) compileHeaders.push(init?.headers);
+      return routed(u, init);
+    }) as any);
+    const agent = makeAgentWith(textModel("ok", 1, 1));
+    agent.setDelegateConfig({ userToken: "tok", workflowId: 7 });
+    await agent.sendMessage("go");
+    expect(compileHeaders.length).toBeGreaterThan(0);
+    for (const h of compileHeaders)
+      expect(h).toEqual({ Authorization: "Bearer tok", "Content-Type": "application/json" });
+  });
 
   test("refreshes the workflow once, on the first turn only", async () => {
     dispatch(okExec);

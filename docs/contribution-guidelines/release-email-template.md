@@ -25,13 +25,7 @@ weight: 80
 The canonical vote email template lives in the repository at
 [`.github/release/vote-email-template.txt`](https://github.com/apache/texera/blob/main/.github/release/vote-email-template.txt).
 
-The release manager does not fill it in by hand. The
-`Create and upload release candidate artifacts` workflow fills in the version,
-RC number, staging directory, git tag, commit hash, signing key, and the list
-of container images pulled by the bundled Docker Compose file, and prints the
-ready-to-send email in its run summary. The run log lists any placeholders
-(such as the "Major Changes" highlights and the sender name) that remain for
-the release manager to fill in before sending.
+The release candidate workflow fills in the version, RC number, staging directory, git tag, commit hash, and the list of container images pulled by the bundled Docker Compose file, and prints the generated email in its run summary. The run log lists the placeholders left for the release manager to fill in before sending: the signing key and email, the "Major Changes" section, and the sender name.
 
 Keeping the template in one place avoids the two copies drifting apart; edit
 the file above rather than this page.
